@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>第00講：計算量・復習 | IQ C++講習会</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
+
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+      body {
+        background-color: #c0c0c0;
+        font-family: 'MS PGothic', 'Hiragino Kaku Gothic ProN', sans-serif;
+      }
+
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+      .blink {
+        animation: blink 1s infinite;
+      }
+      .win-panel {
+        border: 2px solid;
+        border-color: #ffffff #808080 #808080 #ffffff;
+      }
+      pre {
+        background: #ffffff !important;
+        border: 2px solid #808080 !important;
+        box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
+        border-radius: 0px;
+        margin: 0.5rem 0 !important;
+        padding: 1rem !important;
+        overflow-x: auto;
+      }
+      code.hljs {
+        background: transparent !important;
+        font-family: 'Consolas', 'Monaco', 'Andale Mono', 'Ubuntu Mono', monospace !important;
+        font-size: 0.9rem !important;
+        padding: 0 !important;
+        color: #000000;
+      }
+      .code-container {
+        position: relative;
+        height: 100%;
+      }
+      .code-container pre {
+        height: 100%;
+      }
+    </style>
+  </head>
+
+  <body class="text-black pb-10">
+    <header class="text-center py-10">
+      <div class="inline-block bg-white border-4 border-gray-500 shadow-[4px_4px_0_#888] px-8 py-4 text-left">
+        <h1 class="text-2xl font-bold text-blue-800 border-b-4 border-double border-blue-500 pb-2 text-center">
+          第00講：計算量・復習
+        </h1>
+
+        <p class="mt-3 text-sm text-center font-bold">
+          コードを「動けばOK」から「どれだけ速く動くか」へ<br />
+          春学期で身につけたC++を復習しながら、アルゴリズムの世界へ踏み出そう。
+        </p>
+
+        <p class="mt-2 blink text-blue-700 font-bold text-center">★ 制約を見て、コードの速さを予想せよ ★</p>
+      </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 space-y-10">
+      <!-- 0. 本講の目標 -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          0. 本講の目標
+        </h2>
+        <p class="text-sm mb-3">
+          この講習会では、アルゴリズムやデータ構造などを勉強します。プログラムは、同じ結果を出すコードでも以下の違いがあります。
+        </p>
+        <ul class="text-sm list-disc ml-5 space-y-1 mb-4">
+          <li>すぐに終わるコード</li>
+          <li>\(N\) が大きくなると急に遅くなるコード</li>
+          <li>\(N\) が少し大きくなるだけで、現実的な時間では終わらなくなるコード</li>
+        </ul>
+
+        <p class="text-sm font-bold mb-2">例えば、「1からNまでの和」を求めることを考えてみましょう。</p>
+
+        <h3 class="font-bold text-blue-800 mb-1 border-b-2 border-gray-400 pb-1">■ 方法1：1つずつ足す</h3>
+        <div class="code-container mb-3">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-cpp">int N;
+cin >> N;
+
+long long ans = 0;
+
+for (int i = 1; i <= N; i++) {
+    ans += i;
+}
+
+cout << ans << endl;</code></pre>
+        </div>
+        <p class="text-sm mb-4">
+          この方法では、\(N\) 回足し算を行います。つまり、\(N\) が大きくなるほど計算量も増えていきます。
+        </p>
+
+        <h3 class="font-bold text-blue-800 mb-1 border-b-2 border-gray-400 pb-1">■ 方法2：公式を使う</h3>
+        <p class="text-sm mb-2">
+          1から \(N\) までの和には、 \[ 1+2+\cdots+N=\frac{N(N+1)}{2} \] という公式があります。
+        </p>
+        <div class="code-container mb-3">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-cpp">long long N;
+cin >> N;
+
+long long ans = N * (N + 1) / 2;
+
+cout << ans << endl;</code></pre>
+        </div>
+        <p class="text-sm mb-4">
+          こちらは、\(N\) がどれだけ大きくなっても、基本的に決まった回数の計算で答えを求められます。
+        </p>
+
+        <p class="text-sm bg-yellow-50 border-2 border-yellow-500 p-3 win-panel">
+          同じ「1から \(N\) までの和」を求めるプログラムでも、計算方法によって効率が大きく違うことが分かります。<br />
+          秋学期では、このような<strong>「どうすれば、もっと少ない計算で答えを求められるか？」</strong>という視点を身につけていきます。
+        </p>
+      </section>
+
+      <!-- 1. 計算量とは -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          1. 計算量とは
+        </h2>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">1.1 プログラムの「速さ」を考える</h3>
+        <p class="text-sm mb-3">
+          プログラムの効率を考えるとき、重要になるのが<strong>計算量（計算量オーダー）</strong>です。計算量は、入力サイズが大きくなったときに、必要な計算量がどのように増えていくかを表す指標の一つです。<br />
+          競技プログラミングでは、主に \(O(N)\) のように表します。この \(O(...)\) は<strong>オーダー記法（Big O記法）</strong>と呼ばれます。
+        </p>
+        <p class="text-sm font-bold mb-3">まずは、「Nが大きくなったとき、計算量がどのくらい増えるのか」を表していると考えてください。</p>
+
+        <div class="code-container mb-3">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-cpp">for (int i = 0; i < N; i++) {
+    cout << i << endl;
+}</code></pre>
+        </div>
+        <p class="text-sm mb-4">では、ループが \(N\) 回実行されます。したがって、このコードの計算量は \(O(N)\) です。</p>
+
+        <div class="code-container mb-3">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-cpp">cout << N << endl;</code></pre>
+        </div>
+        <p class="text-sm mb-6">のようなコードは、\(N\) の大きさに関係なくほぼ一定回数の処理で済みます。このような計算量を \(O(1)\) と表します。</p>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">1.2 実際に計算量を見積もってみよう</h3>
+        <p class="text-sm mb-3">
+          春学期の資料では、計算量についてさらに詳しく説明しています。<br />
+          <a href="https://takikoboworkshopgithub.github.io/cpp_introduction_for_beginner/09/order.html" class="text-blue-700 underline font-bold hover:text-blue-900">計算量についての資料はこちら</a>
+        </p>
+        <p class="text-sm mb-2">このサイトを使って、以下のコードを見ながら「このプログラムは何回くらい処理をするのか？」を考えてみましょう。</p>
+        <div class="code-container mb-6">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-cpp">for (int i = 0; i < N; i++) {
+    cout << i << endl;
+}
+for (int i = 0; i < N; i++) {
+    for (int j = 0; j < N; j++) {
+        cout << i << " " << j << endl;
+    }
+}</code></pre>
+        </div>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">1.3 よく出てくる計算量</h3>
+        <p class="text-sm mb-3">競技プログラミングでは、次の計算量をよく目にします。</p>
+        <div class="overflow-x-auto mb-4">
+          <table class="min-w-full text-xs text-center border-collapse border border-gray-400">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="border border-gray-400 p-2 font-mono">計算量</th>
+                <th class="border border-gray-400 p-2">イメージ</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td class="border border-gray-400 p-2 font-mono font-bold">O(1)</td><td class="border border-gray-400 p-2">Nが増えてもほぼ一定</td></tr>
+              <tr><td class="border border-gray-400 p-2 font-mono font-bold">O(log N)</td><td class="border border-gray-400 p-2">Nが増えても非常にゆっくり増える</td></tr>
+              <tr><td class="border border-gray-400 p-2 font-mono font-bold">O(N)</td><td class="border border-gray-400 p-2">Nに比例して増える</td></tr>
+              <tr><td class="border border-gray-400 p-2 font-mono font-bold">O(N log N)</td><td class="border border-gray-400 p-2">Nより少し速く増える</td></tr>
+              <tr><td class="border border-gray-400 p-2 font-mono font-bold">O(N^2)</td><td class="border border-gray-400 p-2">Nの2乗に比例して増える</td></tr>
+              <tr><td class="border border-gray-400 p-2 font-mono font-bold">O(2^N)</td><td class="border border-gray-400 p-2">Nが増えると急激に増える</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-sm font-bold">特に、\(O(1), O(\log N), O(N), O(N\log N), O(N^2)\) は今後の講習会で頻繁に登場します。</p>
+      </section>
+
+      <!-- 2. O(log N) と O(N log N) -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          2. O(log N) と O(N log N)
+        </h2>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">2.1 「log N」はとても小さい</h3>
+        <p class="text-sm mb-3">ここからは、特に重要な \(O(\log N)\) について見てみましょう。</p>
+        <div class="overflow-x-auto mb-4">
+          <table class="min-w-full text-xs text-center border-collapse border border-gray-400">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="border border-gray-400 p-2 font-mono">N</th>
+                <th class="border border-gray-400 p-2 font-mono">log_2 N</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td class="border border-gray-400 p-2 font-mono">10</td><td class="border border-gray-400 p-2 font-mono">約 3.32</td></tr>
+              <tr><td class="border border-gray-400 p-2 font-mono">10,000</td><td class="border border-gray-400 p-2 font-mono">約 13.29</td></tr>
+              <tr><td class="border border-gray-400 p-2 font-mono">100,000,000</td><td class="border border-gray-400 p-2 font-mono">約 26.58</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-sm mb-6 font-bold text-blue-800">
+          \(N\) が10から1億まで増えているのに、\(\log N\) は3程度から26程度までしか増えていません。これが、「log Nはうれしい」と言われる理由です。
+        </p>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">2.2 二分探索</h3>
+        <p class="text-sm mb-2">例えば、\(1 \sim N\) の中から目的の値を探すことを考えます。</p>
+        <div class="code-container mb-3">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-cpp">for (int i = 0; i < N; i++) {
+    if (a[i] == target) {
+        // 発見
+    }
+}</code></pre>
+        </div>
+        <p class="text-sm mb-3">
+          とすれば、最悪の場合 \(N\) 個すべてを調べる必要があります。つまり \(O(N)\) です。<br />
+          しかし、データがソートされているなら、二分探索で探索範囲を半分ずつ減らしていけます（\(N \rightarrow N/2 \rightarrow N/4 \rightarrow \dots\)）。計算量は \(O(\log N)\) になります。これは第03講「二分探索」で詳しく扱います。
+        </p>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">2.3 ソート</h3>
+        <p class="text-sm mb-2">春学期にも登場した <code>sort</code> も重要です。</p>
+        <div class="code-container mb-3">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-cpp">sort(a.begin(), a.end());</code></pre>
+        </div>
+        <p class="text-sm">
+          一般的に <code>std::sort</code> の計算量は \(O(N\log N)\) です。\(O(N)\) よりは大きいものの、\(O(N^2)\) と比べるとかなり効率的です。<br />
+          秋学期では、<strong>「\(O(N^2)\) では間に合わない。では、どうすれば \(O(N\log N)\) や \(O(N)\) にできるか？」</strong>を考える機会が増えていきます。
+        </p>
+      </section>
+
+      <!-- 3. 制約から計算量を考える -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          3. 制約から計算量を考える
+        </h2>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">3.1 問題文の「制約」に注目する</h3>
+        <p class="text-sm mb-3">
+          競技プログラミングでは、問題文に「制約：\(1 \le N \le 100,000\)」といった表記があります。これは「\(N\) は最大で10万まで大きくなる」という重要情報です。
+        </p>
+        <div class="code-container mb-3">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-cpp">for (int i = 0; i < N; i++) {
+    for (int j = 0; j < N; j++) {
+        // 処理
+    }
+}</code></pre>
+        </div>
+        <p class="text-sm mb-6">
+          これは \(O(N^2)\) です。\(N = 100,000\) のとき \(N^2 = 10^{10}\) となり、非常に大きな計算量になります。そのため、\(N \le 100,000\) なのに \(O(N^2)\) のアルゴリズムを使うのは避けるべきだと判断できます。
+        </p>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">3.2 「制約 → 計算量 → アルゴリズム」</h3>
+        <p class="text-sm mb-3 font-bold">競技プログラミングの基本思考フロー：</p>
+        <p class="text-xs font-mono bg-gray-100 p-3 mb-4 win-panel">
+          問題文を読む ➔ 制約を見る ➔ 必要な計算量を考える ➔ 使えそうなアルゴリズムを考える ➔ 実装する
+        </p>
+        <ul class="text-sm list-disc ml-5 space-y-1 mb-3">
+          <li>\(N \le 100\) なら \(O(N^2)\) でも十分間に合う</li>
+          <li>\(N \le 100,000\) なら \(O(N^2)\) は厳しい</li>
+          <li>\(N \le 1,000,000\) なら \(O(N\log N)\) や \(O(N)\) のアルゴリズムを検討する</li>
+        </ul>
+        <p class="text-sm font-bold text-blue-800">まずは「Nが大きいなら、計算量の小さいアルゴリズムが必要」という感覚を身につけましょう。</p>
+      </section>
+
+      <!-- 4. 春学期のC++を復習しよう -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          4. 春学期のC++を復習しよう
+        </h2>
+        <p class="text-sm mb-3">
+          秋学期では春学期に勉強したC++の機能を活用します。「問題を見たときに、必要な機能をすぐ使えるか」を意識しましょう。
+        </p>
+        <ul class="text-sm list-disc ml-5 space-y-1">
+          <li><a href="https://takikoboworkshopgithub.github.io/cpp_introduction_for_beginner/" target="_blank" class="text-blue-700 underline font-bold hover:text-blue-900">C++初心者講習会・基礎編 ポータルサイト</a></li>
+          <li><a href="https://atcoder.jp/contests/apg4b" target="_blank" class="text-blue-700 underline font-bold hover:text-blue-900">AtCoder APG4b（C++入門教材）</a></li>
+        </ul>
+      </section>
+
+      <!-- 5. vector -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          5. vector
+        </h2>
+        <p class="text-sm mb-2">大量のデータをまとめて管理するときに使うのが <code>vector</code> です。</p>
+        <div class="code-container mb-4">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-cpp">#include &lt;bits/stdc++.h&gt;
+using namespace std;
+
+int main() {
+    vector&lt;int&gt; a = {3, 1, 4, 1, 5};
+
+    cout &lt;&lt; a[0] &lt;&lt; endl;
+    cout &lt;&lt; a[2] &lt;&lt; endl;
+}</code></pre>
+        </div>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">5.1 vectorに要素を追加する</h3>
+        <div class="code-container mb-4">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-cpp">vector&lt;int&gt; a;
+
+a.push_back(10);
+a.push_back(20);
+a.push_back(30);
+
+// 要素数は a.size() で取得可能
+for (int i = 0; i &lt; a.size(); i++) {
+    cout &lt;&lt; a[i] &lt;&lt; endl;
+}</code></pre>
+        </div>
+      </section>
+
+      <!-- 6. 二次元配列 -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          6. 二次元配列
+        </h2>
+        <p class="text-sm mb-2">表のようなデータを扱うときには、二次元の <code>vector</code> が便利です。</p>
+        <div class="code-container mb-4">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-cpp">#include &lt;bits/stdc++.h&gt;
+using namespace std;
+
+int main() {
+    // 3行 × 4列 の配列を作成
+    vector&lt;vector&lt;int&gt;&gt; a(3, vector&lt;int&gt;(4));
+
+    a[0][0] = 10;
+    a[1][2] = 20;
+
+    for (int i = 0; i &lt; 3; i++) {
+        for (int j = 0; j &lt; 4; j++) {
+            cout &lt;&lt; a[i][j] &lt;&lt; " ";
+        }
+        cout &lt;&lt; endl;
+    }
+}</code></pre>
+        </div>
+      </section>
+
+      <!-- 7. sort -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          7. sort
+        </h2>
+        <p class="text-sm mb-2">データを小さい順（昇順）・大きい順（降順）に並べ替えたいときは <code>sort</code> を使います。</p>
+        <div class="code-container mb-4">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-cpp">vector&lt;int&gt; a = {5, 2, 8, 1, 3};
+
+// 小さい順（昇順）: 1 2 3 5 8
+sort(a.begin(), a.end());
+
+// 大きい順（降順）: 8 5 3 2 1
+sort(a.rbegin(), a.rend());</code></pre>
+        </div>
+      </section>
+
+      <!-- 8. set -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          8. set
+        </h2>
+        <p class="text-sm mb-2">同じ値を重複して持たず、集合として管理したいときには <code>set</code> が便利です。</p>
+        <div class="code-container mb-4">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-cpp">set&lt;int&gt; s;
+
+s.insert(10);
+s.insert(20);
+s.insert(10); // 重複は無視され {10, 20} となる
+
+if (s.count(10)) {
+    cout &lt;&lt; "存在します" &lt;&lt; endl;
+}
+
+s.erase(10); // 削除</code></pre>
+        </div>
+        <p class="text-sm text-gray-700">※ <code>set</code> は要素の追加・削除・検索を \(O(\log N)\) 程度で行えます。</p>
+      </section>
+
+      <!-- 9. map -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          9. map
+        </h2>
+        <p class="text-sm mb-2">「ある値に対して、別の値を対応させたい」ときや「出現回数を数える」ときに <code>map</code> を使います。</p>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">9.1 出現回数を数える</h3>
+        <div class="code-container mb-4">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-cpp">#include &lt;bits/stdc++.h&gt;
+using namespace std;
+
+int main() {
+    vector&lt;int&gt; a = {1, 2, 1, 3, 2, 1};
+    map&lt;int, int&gt; cnt;
+
+    for (int x : a) {
+        cnt[x]++;
+    }
+
+    // cnt[1] = 3, cnt[2] = 2, cnt[3] = 1 となる
+}</code></pre>
+        </div>
+      </section>
+
+      <!-- 10. 「どの道具を使えばいい？」 -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          10. 「どの道具を使えばいい？」
+        </h2>
+        <div class="overflow-x-auto mb-4">
+          <table class="min-w-full text-xs text-left border-collapse border border-gray-400">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="border border-gray-400 p-2">やりたいこと</th>
+                <th class="border border-gray-400 p-2 font-mono">使うもの</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td class="border border-gray-400 p-2">データを順番に大量に持ちたい</td><td class="border border-gray-400 p-2 font-mono font-bold">vector</td></tr>
+              <tr><td class="border border-gray-400 p-2">表・グリッドを扱いたい</td><td class="border border-gray-400 p-2 font-mono font-bold">vector&lt;vector&lt;T&gt;&gt;</td></tr>
+              <tr><td class="border border-gray-400 p-2">データを並べ替えたい</td><td class="border border-gray-400 p-2 font-mono font-bold">sort</td></tr>
+              <tr><td class="border border-gray-400 p-2">重複をなくして値を管理したい</td><td class="border border-gray-400 p-2 font-mono font-bold">set</td></tr>
+              <tr><td class="border border-gray-400 p-2">値と値を対応させたい</td><td class="border border-gray-400 p-2 font-mono font-bold">map</td></tr>
+              <tr><td class="border border-gray-400 p-2">出現回数を数えたい</td><td class="border border-gray-400 p-2 font-mono font-bold">map</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-sm font-bold">今後は「<code>vector</code> ➔ <code>sort</code> ➔ 二分探索」のように、複数の道具を組み合わせて問題を解いていきます。</p>
+      </section>
+
+      <!-- 12. ばちゃこんにチャレンジ！ -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          12. ばちゃこんにチャレンジ！
+        </h2>
+        <p class="text-sm mb-4">
+          最後に、春学期で学んだC++と、今日学んだ計算量を使って問題に挑戦してみましょう。
+        </p>
+        <a
+          href="https://kenkoooo.com/atcoder/#/contest/show/4980190e-9ea0-40f1-b4fc-92c3b1342d9f"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-block bg-blue-600 text-white px-4 py-2 border-2 border-blue-900 shadow-[3px_3px_0_#1e3a8a] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition font-bold text-sm"
+        >
+          バチャコンを開く ➔
+        </a>
+      </section>
+    </main>
+
+    <footer class="text-center py-10">
+      <div
+        class="inline-block bg-white border-2 border-gray-400 px-6 py-2 shadow-[2px_2px_0_#000] text-sm font-bold text-gray-700 win-panel"
+      >
+        IQ C++ Autumn Workshop 2026 - Rep. Takiguchi
+      </div>
+    </footer>
+
+    <script>
+      hljs.highlightAll();
+
+      function copyCode(btn) {
+        const container = btn.closest('.code-container');
+        const code = container.querySelector('code').innerText;
+        navigator.clipboard.writeText(code);
+
+        const originalText = btn.innerText;
+        btn.innerText = '完了！';
+
+        const isGray = btn.classList.contains('bg-gray-600');
+        const defaultBg = isGray ? 'bg-gray-600' : 'bg-blue-600';
+
+        btn.classList.remove(defaultBg);
+        btn.classList.add('bg-green-600');
+
+        setTimeout(() => {
+          btn.innerText = originalText;
+          btn.classList.remove('bg-green-600');
+          btn.classList.add(defaultBg);
+        }, 1500);
+      }
+    </script>
+  </body>
+</html>

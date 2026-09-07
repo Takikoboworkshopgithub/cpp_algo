@@ -1,0 +1,1155 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>第02講：累積和・いもす法 | IQ C++講習会</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
+
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+      body {
+        background-color: #c0c0c0;
+        font-family: 'MS PGothic', 'Hiragino Kaku Gothic ProN', sans-serif;
+      }
+
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+      .blink {
+        animation: blink 1s infinite;
+      }
+      .win-panel {
+        border: 2px solid;
+        border-color: #ffffff #808080 #808080 #ffffff;
+      }
+      pre {
+        background: #ffffff !important;
+        border: 2px solid #808080 !important;
+        box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
+        border-radius: 0px;
+        margin: 0.5rem 0 !important;
+        padding: 1rem !important;
+        overflow-x: auto;
+      }
+      code.hljs {
+        background: transparent !important;
+        font-family: 'Consolas', 'Monaco', 'Andale Mono', 'Ubuntu Mono', monospace !important;
+        font-size: 0.9rem !important;
+        padding: 0 !important;
+        color: #000000;
+      }
+      .code-container {
+        position: relative;
+        height: 100%;
+      }
+      .code-container pre {
+        height: 100%;
+      }
+    </style>
+  </head>
+
+  <body class="text-black pb-10">
+    <header class="text-center py-10">
+      <div class="inline-block bg-white border-4 border-gray-500 shadow-[4px_4px_0_#888] px-8 py-4 text-left">
+        <h1 class="text-2xl font-bold text-blue-800 border-b-4 border-double border-blue-500 pb-2 text-center">
+          第02講：累積和・いもす法
+        </h1>
+
+        <p class="mt-3 text-sm text-center font-bold">
+          「一度計算したものを、何度も使い回せ。」
+        </p>
+
+        <p class="mt-2 blink text-blue-700 font-bold text-center">★ 前処理と累積で、区間を高速に扱え。 ★</p>
+      </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 space-y-10">
+      <!-- 0. 累積和とは -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          0. 累積和とは
+        </h2>
+        <p class="text-sm mb-3">
+          突然ですが、次のような配列を考えてみましょう。
+        </p>
+
+        <div class="bg-gray-100 p-3 mb-4 win-panel font-mono text-xs">
+          duration = [16, 16, 17, 31, 8]
+        </div>
+
+        <p class="text-sm mb-3">
+          これは、新百合ヶ丘から登戸まで、駅と駅の間を歩いたときにかかる時間を表しています。
+        </p>
+
+        <div class="bg-gray-50 p-3 mb-4 win-panel font-mono text-xs space-y-1">
+          <div>0: 新百合ヶ丘 - 百合ヶ丘       16分</div>
+          <div>1: 百合ヶ丘 - 読売ランド前     16分</div>
+          <div>2: 読売ランド前 - 生田         17分</div>
+          <div>3: 生田 - 向ヶ丘遊園           31分</div>
+          <div>4: 向ヶ丘遊園 - 登戸            8分</div>
+        </div>
+
+        <p class="text-sm mb-2">例えば、</p>
+        <div class="bg-blue-50 border-l-4 border-blue-600 p-2 mb-3 text-sm font-bold text-blue-900">
+          読売ランド前から向ヶ丘遊園まで、何分かかる？
+        </div>
+        <p class="text-sm mb-2">と聞かれたとします。必要なのは、</p>
+        <p class="text-sm font-bold mb-3 pl-4">17 + 31 = 48分</p>
+        <p class="text-sm mb-2">です。プログラムでは、</p>
+
+        <div class="code-container mb-4">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">
+            コピー
+          </button>
+          <pre><code class="language-cpp">int sum = 0;
+
+for (int i = 2; i < 4; ++i) {
+    sum += duration[i];
+}
+
+cout << sum << endl;</code></pre>
+        </div>
+
+        <p class="text-sm mb-3">
+          のように求められます。<br />
+          この方法では、調べる区間の長さを \(K\) とすると、\(O(K)\) の時間がかかります。<br />
+          今回のように質問が1回だけなら、これで十分です。
+        </p>
+
+        <p class="text-sm mb-2 font-bold">しかし、</p>
+        <ul class="text-sm list-disc ml-5 mb-3 space-y-1 text-gray-800">
+          <li>「読売ランド前から向ヶ丘遊園は？」</li>
+          <li>「百合ヶ丘から生田は？」</li>
+          <li>「新百合ヶ丘から登戸は？」</li>
+        </ul>
+        <p class="text-sm mb-3">
+          というように、同じ配列について何度も区間の合計を聞かれたらどうでしょうか？<br />
+          毎回、その区間を最初から足し直すことになります。<br />
+          質問のたびに同じような計算を繰り返すのは、少し無駄です。
+        </p>
+
+        <div class="bg-yellow-50 border-2 border-yellow-500 p-3 text-sm win-panel mb-2">
+          <strong>何度も使う情報なら、先に計算しておけばいいのでは？</strong>
+        </div>
+        <p class="text-sm text-right font-bold text-blue-800">と考えます。これが、今回学ぶ累積和の基本的な発想です。</p>
+      </section>
+
+      <!-- 1. 累積和の考え方 -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          1. 累積和の考え方
+        </h2>
+        <p class="text-sm mb-3">
+          累積和とは、<br />
+          <strong>あらかじめ配列の前から順番に計算しておき、あとから区間の和を高速に求める方法</strong>です。
+        </p>
+        <p class="text-sm mb-2">例えば、</p>
+        <div class="bg-gray-100 p-2 mb-3 win-panel font-mono text-xs">
+          A = [a0, a1, a2, a3, a4]
+        </div>
+        <p class="text-sm mb-2">という配列があるとします。ここで、</p>
+        <p class="text-sm font-bold text-center bg-gray-50 p-2 my-2 win-panel">
+          \(s[i] = A[0] + A[1] + \dots + A[i-1]\)
+        </p>
+        <p class="text-sm mb-2">と定義します。すると、</p>
+        <div class="bg-gray-50 p-3 mb-4 win-panel font-mono text-xs space-y-1">
+          <div>s[0] = 0</div>
+          <div>s[1] = a0</div>
+          <div>s[2] = a0 + a1</div>
+          <div>s[3] = a0 + a1 + a2</div>
+          <div>s[4] = a0 + a1 + a2 + a3</div>
+          <div>s[5] = a0 + a1 + a2 + a3 + a4</div>
+        </div>
+        <p class="text-sm mb-2">となります。例えば、</p>
+        <div class="bg-gray-100 p-2 mb-2 win-panel font-mono text-xs">
+          A = [10, 20, 30, 40, 50]
+        </div>
+        <p class="text-sm mb-2">なら、</p>
+        <div class="bg-gray-100 p-2 mb-3 win-panel font-mono text-xs">
+          s = [0, 10, 30, 60, 100, 150]
+        </div>
+        <p class="text-sm mb-6">です。この s が累積和です。</p>
+
+        <!-- 1.1 -->
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+          1.1 区間の和を引き算で求める
+        </h3>
+        <p class="text-sm mb-2">
+          では、累積和を使うと、なぜ区間の和を高速に求められるのでしょうか？<br />
+          例えば、\(A[2] + A[3] + A[4]\) を求めたいとします。
+        </p>
+        <p class="text-sm mb-2">\(A[0]\) から \(A[4]\) までの和は、</p>
+        <p class="text-xs font-mono bg-gray-50 p-2 mb-2 win-panel">s[5] = A[0] + A[1] + A[2] + A[3] + A[4]</p>
+        <p class="text-sm mb-2">です。また、</p>
+        <p class="text-xs font-mono bg-gray-50 p-2 mb-2 win-panel">s[2] = A[0] + A[1]</p>
+        <p class="text-sm mb-2">です。そこで、\(s[5] - s[2]\) を計算してみます。</p>
+        
+        <div class="bg-blue-50 border-2 border-blue-300 p-3 mb-3 win-panel text-xs font-mono">
+          \((A[0] + A[1] + A[2] + A[3] + A[4]) - (A[0] + A[1]) = A[2] + A[3] + A[4]\)
+        </div>
+
+        <p class="text-sm mb-3">
+          となります。つまり、不要な部分を引き算によって消すことができます。
+        </p>
+        <p class="text-sm mb-2">一般に、区間 \([l, r)\) の和は、</p>
+        <div class="bg-yellow-50 border-2 border-yellow-500 p-3 my-2 text-center text-base font-bold win-panel">
+          \(s[r] - s[l]\)
+        </div>
+        <p class="text-sm mb-6">で求められます。必要なのは、引き算1回だけです。</p>
+
+        <!-- 1.2 -->
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+          1.2 累積和はどうやって作る？
+        </h3>
+        <p class="text-sm mb-2">ここで、\(s[0] = 0\) としていることに注目してください。その後、</p>
+        <div class="bg-gray-50 p-2 mb-2 win-panel text-xs font-mono">
+          s[1] = s[0] + A[0]<br />
+          s[2] = s[1] + A[1]<br />
+          s[3] = s[2] + A[2] ...
+        </div>
+        <p class="text-sm mb-2">と、前の累積和に現在の値を足していくことで累積和を作ることができます。つまり、</p>
+        <div class="bg-yellow-50 border-2 border-yellow-500 p-3 my-2 text-center text-base font-bold win-panel">
+          \(s[i+1] = s[i] + A[i]\)
+        </div>
+        <p class="text-sm mb-3">
+          です。毎回 \(A[0]\) から足し直す必要はありません。一度計算した \(s[i]\) を使って、次の \(s[i+1]\) を計算すればよいのです。
+        </p>
+        <p class="text-sm mb-6">
+          このように、<strong>実際に質問される前に、必要な情報をあらかじめ計算しておく</strong>ことを前処理といいます。累積和は、この「前処理」の代表的なテクニックです。
+        </p>
+
+        <!-- 1.3 -->
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+          1.3 駅の例で考えてみる
+        </h3>
+        <p class="text-sm mb-2">先ほどの、</p>
+        <p class="text-xs font-mono bg-gray-100 p-2 mb-2 win-panel">duration = [16, 16, 17, 31, 8]</p>
+        <p class="text-sm mb-2">について累積和を作ってみましょう。</p>
+        <div class="bg-gray-50 p-3 mb-3 win-panel font-mono text-xs space-y-1">
+          <div>ruisekiwa[0] = 0</div>
+          <div>ruisekiwa[1] = 0  + 16 = 16</div>
+          <div>ruisekiwa[2] = 16 + 16 = 32</div>
+          <div>ruisekiwa[3] = 32 + 17 = 49</div>
+          <div>ruisekiwa[4] = 49 + 31 = 80</div>
+          <div>ruisekiwa[5] = 80 + 8  = 88</div>
+        </div>
+        <p class="text-sm mb-2">したがって、</p>
+        <p class="text-xs font-mono bg-gray-100 p-2 mb-3 win-panel">ruisekiwa = [0, 16, 32, 49, 80, 88]</p>
+        <p class="text-sm mb-2">となります。ここで、</p>
+        <p class="text-sm font-bold mb-2">読売ランド前 → 向ヶ丘遊園</p>
+        <p class="text-sm mb-2">を考えます。これは、<code>duration[2] + duration[3]</code> なので <code>17 + 31 = 48</code> です。累積和を使えば、</p>
+        <div class="bg-blue-50 border border-blue-300 p-3 mb-3 win-panel font-mono text-xs">
+          ruisekiwa[4] - ruisekiwa[2]<br />
+          = 80 - 32<br />
+          = 48
+        </div>
+        <p class="text-sm mb-6">
+          と求められます。元の配列を2個調べる必要はありません。累積和をあらかじめ作っておけば、区間の和を引き算1回で求めることができます。
+        </p>
+
+        <!-- 1.4 -->
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+          1.4 なぜ最初に0を入れるのか？
+        </h3>
+        <p class="text-sm mb-3">
+          累積和では、<code>s = [0, ...]</code> のように、元の配列より1個多く配列を用意するのが定石です。これは、区間を \([l, r)\) という形で統一して扱うためです。
+        </p>
+        <p class="text-sm mb-2">
+          数学では、\([1, 4]\) は 1以上4以下 を表します。一方、\([1, 4)\) は 1以上4未満 を表します。<br />
+          後者のように、右端を含まない区間を半開区間といいます。
+        </p>
+        <p class="text-sm mb-6">
+          プログラミングでは、\([0, N)\) のような半開区間が非常によく登場します。例えば \([1, 4)\) なら、1, 2, 3 を含み、4は含みません。
+        </p>
+
+        <!-- 1.5 -->
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+          1.5 [l,r) にすると何が嬉しい？
+        </h3>
+        <p class="text-sm mb-2">例えば、</p>
+        <p class="text-xs font-mono bg-gray-100 p-2 mb-2 win-panel">A = [10, 20, 30, 40, 50]</p>
+        <p class="text-sm mb-2">について、<code>A[1] + A[2] + A[3]</code> を求めたいとします。これは \([1, 4)\) という区間です。累積和なら、\(s[4] - s[1]\) と書けます。</p>
+        <div class="bg-yellow-50 border-2 border-yellow-500 p-3 my-3 text-center text-sm font-bold win-panel">
+          右端の番号を、そのまま累積和の添字として使える
+        </div>
+        <p class="text-sm mb-6">
+          という非常に扱いやすい形になります。これが、累積和で半開区間を使う大きなメリットです。
+        </p>
+
+        <!-- 1.6 -->
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+          1.6 [l,r] が与えられた場合
+        </h3>
+        <p class="text-sm mb-2">一方、問題文では \([l, r]\) という右端を含む区間が与えられることもあります。</p>
+        <p class="text-sm mb-2">例えば \([1, 4]\) なら、\(A[1], A[2], A[3], A[4]\) が対象です。これは \([1, 5)\) と同じです。したがって、\([l, r]\) の和は、</p>
+        <div class="bg-yellow-50 border-2 border-yellow-500 p-3 my-3 text-center text-base font-bold win-panel">
+          \(s[r+1] - s[l]\)
+        </div>
+        <p class="text-sm mb-2">で求められます。</p>
+        <p class="text-sm mb-6 font-bold text-blue-900">
+          つまり、\([l, r]\) を見たら、\([l, r+1)\) に変換して考えるということです。この考え方は、累積和に限らず、競技プログラミングで非常によく使います。
+        </p>
+
+        <!-- 1.7 -->
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+          1.7 C++で実装する
+        </h3>
+        <p class="text-sm mb-2">累積和の構築は非常に簡単です。</p>
+
+        <div class="code-container mb-4">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">
+            コピー
+          </button>
+          <pre><code class="language-cpp">int N;
+cin >> N;
+
+vector&lt;int&gt; A(N);
+
+for (int i = 0; i < N; ++i) {
+    cin >> A[i];
+}
+
+// 累積和
+vector&lt;int&gt; s(N + 1, 0);
+
+for (int i = 0; i < N; ++i) {
+    s[i + 1] = s[i] + A[i];
+}</code></pre>
+        </div>
+
+        <p class="text-sm mb-2">これで、\(s[i] = A[0] + \dots + A[i-1]\) となっています。区間 \([l, r)\) の和を求めるなら、</p>
+
+        <div class="code-container mb-2">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">
+            コピー
+          </button>
+          <pre><code class="language-cpp">cout << s[r] - s[l] << endl;</code></pre>
+        </div>
+        <p class="text-sm">です。</p>
+      </section>
+
+      <!-- 2. 例題：区間内の0の個数を求めよう -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          2. 例題：区間内の0の個数を求めよう
+        </h2>
+        <p class="text-sm mb-3">
+          ここまでの例では、区間の「合計」を求めました。<br />
+          しかし、累積和は普通の数値の合計だけに使うものではありません。次のような問題を考えてみましょう。
+        </p>
+
+        <div class="bg-gray-50 border-2 border-gray-400 p-4 mb-4 win-panel text-sm space-y-2">
+          <p class="font-bold">問題：</p>
+          <p>
+            長さ \(N\) の配列 \(A\) が与えられる。<br />
+            この \(A\) の区間 \([l, r]\) の中に、0が何回登場するかを知りたい。<br />
+            この質問は \(M\) 回行われる。
+          </p>
+          <p class="font-bold pt-2">制約：</p>
+          <p class="font-mono text-xs">
+            0 ≤ N ≤ 10^7<br />
+            0 ≤ l ≤ r < N<br />
+            0 ≤ M ≤ 10^5
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-xs font-mono">
+          <div class="bg-gray-100 p-3 win-panel">
+            <div class="font-bold mb-1 border-b pb-1">入力</div>
+            <div>6</div>
+            <div>1 0 3 0 0 2</div>
+            <div>3</div>
+            <div>0 2</div>
+            <div>1 4</div>
+            <div>2 5</div>
+          </div>
+          <div class="bg-gray-100 p-3 win-panel">
+            <div class="font-bold mb-1 border-b pb-1">出力例</div>
+            <div>1</div>
+            <div>3</div>
+            <div>2</div>
+          </div>
+        </div>
+
+        <p class="text-sm mb-2">それぞれ、</p>
+        <ul class="text-xs font-mono space-y-1 mb-4 bg-gray-50 p-2 win-panel">
+          <li>[0, 2] → 1, 0, 3 → 1個</li>
+          <li>[1, 4] → 0, 3, 0, 0 → 3個</li>
+          <li>[2, 5] → 3, 0, 0, 2 → 2個</li>
+        </ul>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">キーポイント</h3>
+        <p class="text-sm mb-2">今回の問題で重要なのは、次の点です。</p>
+        <ul class="text-sm list-disc ml-5 mb-4 space-y-1">
+          <li>同じ配列について何度も質問される</li>
+          <li>毎回 \([l, r]\) を最初から調べると遅い</li>
+          <li>あらかじめ「ここまでに0が何個あるか」を計算しておく</li>
+          <li>\([l, r]\) を \([l, r+1)\) と考える</li>
+          <li>区間の答えを引き算1回で求める</li>
+        </ul>
+        <p class="text-sm mb-6 font-bold text-blue-900">つまり、ここでも累積和が使えます。</p>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">解法</h3>
+        <p class="text-sm mb-2">例えば、</p>
+        <p class="text-xs font-mono bg-gray-100 p-2 mb-2 win-panel">A = [1, 0, 3, 0, 0, 2]</p>
+        <p class="text-sm mb-3">
+          という配列について考えましょう。質問されるたびに、「この区間には0が何個あるかな？」と最初から数えてもよいでしょうか？<br />
+          今回の例では配列が短いので問題ありません。しかし、\(N\) は最大で \(10^7\)、質問は最大で \(10^5\) 回あります。毎回配列を調べていると、最悪の場合 \(10^7 \times 10^5 = 10^{12}\) 個もの要素を調べることになり、大変時間がかかります。
+        </p>
+        <p class="text-sm mb-4 font-bold">そこで、今回も「質問される前に計算しておく」ことにしましょう。</p>
+
+        <p class="font-bold text-blue-800 mb-1">■ 「ここまでに0が何個あるか」を記録する</p>
+        <p class="text-sm mb-2">まず、\(A[0]\) からここまでに、0はいくつあるか？を考えます。</p>
+        <div class="bg-gray-50 p-3 mb-4 win-panel font-mono text-xs space-y-1">
+          <div>A       =  1  0  3  0  0  2</div>
+          <div>位置    =  0  1  2  3  4  5</div>
+          <div>0の個数 =  0  1  1  2  3  3</div>
+        </div>
+        <p class="text-sm mb-4">この「ここまでに0が何個あるか」を、あらかじめ配列に保存しておきます。</p>
+
+        <p class="font-bold text-blue-800 mb-1">■ prefixを作る</p>
+        <p class="text-sm mb-2">ここでは、<code>prefix[i]</code> を「\(A[0]\) から \(A[i-1]\) までに存在する0の個数」と定義します。この定義にすると、</p>
+        <div class="bg-gray-50 p-3 mb-3 win-panel font-mono text-xs space-y-1">
+          <div>A      = [1, 0, 3, 0, 0, 2]</div>
+          <div>prefix = [0, 0, 1, 1, 2, 3, 3]</div>
+        </div>
+        <p class="text-sm mb-4">
+          となります。例えば <code>prefix[3] = 1</code> です。これは \(A[0], A[1], A[2]\)（つまり 1, 0, 3）の中に0が1個あるという意味です。同様に <code>prefix[5] = 3</code> なら \(A[0] \dots A[4]\) の中に0が3個あるという意味です。
+        </p>
+
+        <p class="font-bold text-blue-800 mb-1">■ なぜ1個余分に作るのか？</p>
+        <p class="text-sm mb-2">prefix は、元の配列より1個多く作ります。</p>
+        <div class="bg-gray-50 p-3 mb-3 win-panel font-mono text-xs space-y-1">
+          <div>A      = [1, 0, 3, 0, 0, 2] (0〜5)</div>
+          <div>prefix = [0, 0, 1, 1, 2, 3, 3] (0〜6)</div>
+        </div>
+        <p class="text-sm mb-4">
+          最初の <code>prefix[0] = 0</code> は「まだAを1個も見ていないので、0は0個」を表しています。この「何も見ていない状態」を用意しておくことで、区間の計算をきれいに行うことができます。
+        </p>
+
+        <p class="font-bold text-blue-800 mb-1">■ [l,r] を [l,r+1) と考える</p>
+        <p class="text-sm mb-2">
+          ここで、問題文では \([l, r]\) という区間が与えられていることに注意してください。例えば \([1, 4]\) なら \(A[1], A[2], A[3], A[4]\) を調べます。これは \([1, 5)\) と同じです（\([1, 5) = 1, 2, 3, 4\) だからです）。
+        </p>
+        <p class="text-sm mb-4">
+          つまり、\([l, r] = [l, r+1)\) と考えることができます。ここで \(r+1\) が登場することを覚えておきましょう。
+        </p>
+
+        <p class="font-bold text-blue-800 mb-1">■ 区間の答えを引き算で求める</p>
+        <p class="text-sm mb-2">
+          では \([l, r] = [1, 4]\) の答えを求めてみましょう。\([1, 4]\) は \([1, 5)\) と同じなので、求めたいのは \(A[1], A[2], A[3], A[4]\) に含まれる0の個数です。
+        </p>
+        <p class="text-sm mb-2">
+          まず <code>prefix[5] = 3</code> なので、\(A[0] \dots A[4]\) には0が3個あることが分かります。しかしこれには \(A[0]\) も含まれているので、<code>prefix[1] = 0</code> を引きます。
+        </p>
+        <div class="bg-blue-50 border border-blue-300 p-2 mb-3 win-panel font-mono text-xs">
+          prefix[5] - prefix[1] = 3 - 0 = 3
+        </div>
+        <p class="text-sm mb-4">これで \(A[1] \dots A[4]\) に含まれる0の個数を求めることができました。</p>
+
+        <p class="font-bold text-blue-800 mb-1">■ 一般化すると</p>
+        <p class="text-sm mb-2">
+          問題文では \([l, r]\) が与えられます。これを \([l, r+1)\) と考えると、その中にある0の個数は、
+        </p>
+        <div class="bg-yellow-50 border-2 border-yellow-500 p-3 my-2 text-center text-base font-bold win-panel">
+          \(prefix[r+1] - prefix[l]\)
+        </div>
+        <p class="text-sm mb-6">
+          で求めることができます。<code>prefix[r+1]</code> には \(A[0] \dots A[r]\) の0がすべて含まれていて、<code>prefix[l]</code> には \(A[0] \dots A[l-1]\) の0が含まれているからです。この2つを引けば \(A[l] \dots A[r]\) だけが残ります。
+        </p>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">実装</h3>
+        <div class="code-container mb-6">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">
+            コピー
+          </button>
+          <pre><code class="language-cpp">#include &lt;bits/stdc++.h&gt;
+using namespace std;
+
+int main() {
+    int N;
+    cin >> N;
+
+    // prefix[i] = A[0] ～ A[i-1] に含まれる0の個数
+    vector&lt;int&gt; prefix(N + 1, 0);
+
+    for (int i = 0; i < N; ++i) {
+        int a;
+        cin >> a;
+
+        prefix[i + 1] = prefix[i];
+
+        if (a == 0) {
+            ++prefix[i + 1];
+        }
+    }
+
+    int M;
+    cin >> M;
+
+    for (int i = 0; i < M; ++i) {
+        int l, r;
+        cin >> l >> r;
+
+        // [l,r] = [l,r+1)
+        cout << prefix[r + 1] - prefix[l] << endl;
+    }
+}</code></pre>
+        </div>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">計算量</h3>
+        <p class="text-sm mb-2">この方法では、最初に prefix を作るために配列を1回調べます。したがって、</p>
+        <p class="text-sm font-bold pl-4 mb-2">prefixを作る： \(O(N)\)</p>
+        <p class="text-sm mb-2">です。その後、1つの質問に対しては <code>prefix[r + 1] - prefix[l]</code> という引き算1回しか行わないため、1回の質問は \(O(1)\) です。質問が \(M\) 回あるので、全体では、</p>
+        <div class="bg-yellow-50 border-2 border-yellow-500 p-3 my-2 text-center text-base font-bold win-panel">
+          \(O(N + M)\)
+        </div>
+        <p class="text-sm mb-3">
+          となります。一方、毎回 \([l, r]\) を直接調べる方法では最悪 \(O(NM)\) かかります。
+        </p>
+        <p class="text-sm font-bold text-blue-900">
+          今回のように、同じ配列について何度も区間について質問される場合には、先に累積情報を作っておくことで非常に高速に答えられます。
+        </p>
+      </section>
+
+      <!-- 3. いもす法 -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          3. いもす法
+        </h2>
+        <p class="text-sm mb-3">
+          ここまでの累積和では、「配列が与えられていて、その区間について質問する」という問題を扱いました。<br />
+          では、逆に<strong>「区間に対して何度も値を加算し、最後に各場所の値を知りたい」</strong>という問題だったらどうでしょうか？
+        </p>
+        <p class="text-sm mb-2">例えば、</p>
+        <ul class="text-xs font-mono list-disc ml-5 mb-3 space-y-1">
+          <li>[8, 10] に +1</li>
+          <li>[12, 18] に +1</li>
+          <li>[9, 15] に +1</li>
+        </ul>
+        <p class="text-sm mb-4">
+          というように、何度も区間を更新するとします。このような問題を高速に扱う代表的な方法が、<strong>いもす法</strong>です。
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div class="bg-blue-50 border-2 border-blue-300 p-3 win-panel text-xs space-y-1">
+            <div class="font-bold text-blue-900 border-b pb-1">累積和</div>
+            <div>「区間について質問する」</div>
+            <div>↓ 前処理しておく</div>
+            <div>質問を高速に答える</div>
+          </div>
+          <div class="bg-green-50 border-2 border-green-300 p-3 win-panel text-xs space-y-1">
+            <div class="font-bold text-green-900 border-b pb-1">いもす法</div>
+            <div>「区間を更新する」</div>
+            <div>↓ 更新の境界だけ記録する</div>
+            <div>↓ 最後に累積和を取る</div>
+            <div>最終的な状態を得る</div>
+          </div>
+        </div>
+
+        <p class="text-sm mb-4">
+          つまり、いもす法も**「同じような計算を何度もするなら、全部その場でやらない」**という発想から生まれています。
+        </p>
+
+        <div class="bg-gray-100 border-2 border-gray-400 p-3 mb-6 win-panel text-xs">
+          名前の由来になったいもす氏による解説もあります。<br />
+          <a href="https://imoz.jp/algorithms/imos_method.html" target="_blank" rel="noopener noreferrer" class="text-blue-700 underline font-bold">
+            https://imoz.jp/algorithms/imos_method.html
+          </a><br />
+          非常にわかりやすいので、アルゴリズムそのものよりも、ここでは**「なぜこんなことをするのか」というマインド**を理解しましょう。
+        </div>
+
+        <!-- 3.1 -->
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+          3.1 例題：時間帯ごとの客の人数を求める
+        </h3>
+        <p class="text-sm mb-3">次の問題を考えてみましょう。</p>
+        <div class="bg-gray-50 border-2 border-gray-400 p-3 mb-4 win-panel text-sm space-y-1">
+          <div>店は1時から24時まで営業している。</div>
+          <div>この日に来た客の人数は \(N\) 人で、それぞれの入店時刻 \(p_i\) と退店時刻 \(q_i\) が分かっている。</div>
+          <div>それぞれの時間帯に、何人の客がいたかを求めたい。</div>
+        </div>
+        <p class="text-sm mb-2">例えば、</p>
+        <div class="bg-gray-100 p-2 mb-2 win-panel font-mono text-xs">
+          3<br />
+          8 10<br />
+          12 18<br />
+          9 15
+        </div>
+        <p class="text-sm mb-2">という入力が与えられたとします。最初の客は「8時に入店し、10時に退店」したとします。この客がいた時間帯に +1 してみましょう。</p>
+        <div class="bg-gray-50 p-2 mb-3 win-panel font-mono text-xs overflow-x-auto">
+          時刻   1 2 3 4 5 6 7 8 9 10 11 12 ...<br />
+          人数   0 0 0 0 0 0 0 1 1 1  0  0 ...
+        </div>
+        <p class="text-sm mb-2">これを3人について繰り返せば、</p>
+        <div class="bg-gray-50 p-2 mb-3 win-panel font-mono text-xs overflow-x-auto">
+          0 0 0 0 0 0 0 1 2 2 1 2 2 2 2 1 1 1 0 0 0 0
+        </div>
+        <p class="text-sm mb-6">のように、各時間帯の客数を求めることができます。しかし、この方法には問題があります。</p>
+
+        <!-- 3.2 -->
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+          3.2 区間全体を更新すると遅い
+        </h3>
+        <p class="text-sm mb-2">例えば <code>8 10</code> という客がいた場合、</p>
+        <div class="code-container mb-3">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-cpp">for (int t = 8; t <= 10; ++t) {
+    people[t]++;
+}</code></pre>
+        </div>
+        <p class="text-sm mb-2">
+          のように、8時から10時までのすべての場所を更新することになります。客が \(C\) 人いて、時間帯の数を \(T\) とすると、最悪の場合 \(O(C \times T)\) の計算量になります。
+        </p>
+        <p class="text-sm mb-3">
+          例えば客が 100,000人、時間帯が 1,000,000個 もあれば、とても現実的ではありません。
+        </p>
+        <p class="text-sm mb-6 font-bold text-blue-900">
+          ここで、「本当に区間のすべての場所に、今すぐ +1 する必要があるのか？」と考えてみます。
+        </p>
+
+        <!-- 3.3 -->
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+          3.3 「変化した場所」だけ記録する
+        </h3>
+        <p class="text-sm mb-2">先ほどの、「8時から10時まで +1」という操作をよく考えてみましょう。欲しい結果は、</p>
+        <div class="bg-gray-50 p-2 mb-3 win-panel font-mono text-xs">
+          時刻     8  9  10  11<br />
+          人数     1  1   1   0
+        </div>
+        <p class="text-sm mb-3">です。つまり、「8時で +1 され、11時になったら +1 が終わる」と考えることができます。</p>
+        <p class="text-sm mb-2">そこで、</p>
+        <div class="bg-yellow-50 border-2 border-yellow-500 p-3 my-2 text-center text-sm font-bold win-panel">
+          8時 → +1<br />
+          11時 → -1
+        </div>
+        <p class="text-sm mb-6">
+          だけを記録します。ここで、\([8, 10]\) を \([8, 11)\) と考えていることに注目してください。これは先ほど累積和で登場した半開区間です。
+        </p>
+
+        <!-- 3.4 -->
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+          3.4 差分を記録する
+        </h3>
+        <p class="text-sm mb-2">配列を <code>A = [0 0 0 0 0 0 0 0 0 0 0 0 ...]</code> とします。8時から10時まで +1したいので、</p>
+        <ul class="text-xs font-mono list-disc ml-5 mb-2">
+          <li>8番目に +1</li>
+          <li>11番目に -1</li>
+        </ul>
+        <p class="text-sm mb-2">を記録します。すると、</p>
+        <div class="bg-gray-50 p-2 mb-3 win-panel font-mono text-xs overflow-x-auto">
+          A = [0 0 0 0 0 0 0 1 0 0 -1 0 0 ...]
+        </div>
+        <p class="text-sm mb-2">
+          となります。この時点では、まだ8時から10時までのすべての場所に1が入っているわけではありません。しかし、この配列に累積和を取ってみます。
+        </p>
+        <div class="bg-blue-50 border border-blue-300 p-3 mb-3 win-panel font-mono text-xs space-y-1 overflow-x-auto">
+          <div>元のA   0 0 0 0 0 0 0 1 0 0 -1 0 ...</div>
+          <div>累積和  0 0 0 0 0 0 0 1 1 1  0 0 ...</div>
+        </div>
+        <p class="text-sm mb-6">
+          すると、まるで魔法のように、8 9 10 の場所に 1 1 1 という欲しかった区間が復元されました。これが、いもす法の基本的な考え方です。
+        </p>
+
+        <!-- 3.5 -->
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+          3.5 なぜこれでうまくいくのか？
+        </h3>
+        <p class="text-sm mb-2">実際には、「8時から10時まで +1する」という操作をしていません。やっているのは、</p>
+        <ul class="text-xs font-mono list-disc ml-5 mb-2">
+          <li>8時 → +1</li>
+          <li>11時 → -1</li>
+        </ul>
+        <p class="text-sm mb-2">という2か所への記録だけです。その後、左から累積していきます。</p>
+        <div class="bg-gray-50 p-3 mb-3 win-panel font-mono text-xs space-y-1 overflow-x-auto">
+          <div>時刻       7   8   9   10   11   12</div>
+          <div>差分       0  +1   0    0   -1    0</div>
+          <div>累積値     0   1   1    1    0    0</div>
+        </div>
+        <p class="text-sm mb-2">
+          8時で +1 されたので、そこから先は1になります。11時で -1 されたので、そこから先は0に戻ります。
+        </p>
+        <p class="text-sm mb-6 font-bold text-blue-900">
+          つまり、変化の境界だけを記録しているわけです。
+        </p>
+
+        <!-- 3.6 -->
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+          3.6 3人の場合
+        </h3>
+        <p class="text-sm mb-2">では、先ほどの3人について考えてみましょう。</p>
+        <div class="bg-gray-50 p-3 mb-3 win-panel text-xs space-y-1">
+          <div>8 10 ➔ 8時 → +1, 11時 → -1</div>
+          <div>12 18 ➔ 12時 → +1, 19時 → -1</div>
+          <div>9 15 ➔ 9時 → +1, 16時 → -1</div>
+        </div>
+        <p class="text-sm mb-2">つまり、8, 12, 9 に +1 し、11, 19, 16 に -1 です。差分配列は、</p>
+        <div class="bg-gray-100 p-2 mb-2 win-panel font-mono text-xs overflow-x-auto">
+          A = [0 0 0 0 0 0 0 1 1 0 -1 1 0 0 0 -1 0 0 -1 0 0 0 0]
+        </div>
+        <p class="text-sm mb-2">となります。これに累積和を取ると、</p>
+        <div class="bg-gray-100 p-2 mb-3 win-panel font-mono text-xs overflow-x-auto">
+          A = [0 0 0 0 0 0 0 1 2 2 1 2 2 2 2 1 1 1 0 0 0 0 0]
+        </div>
+        <p class="text-sm mb-6">となります。実際の客数が復元されました。</p>
+
+        <!-- 3.7 -->
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+          3.7 いもす法の本質
+        </h3>
+        <p class="text-sm mb-2">
+          ここで、一度立ち止まって考えてみましょう。本来は「この区間全部に +1 する」という操作をしたかったはずです。
+        </p>
+        <p class="text-sm mb-2">しかし実際に行ったことは、</p>
+        <ul class="text-sm list-disc ml-5 mb-2">
+          <li>始点に +1</li>
+          <li>終点の次に -1</li>
+        </ul>
+        <p class="text-sm mb-3">だけです。そして最後に累積和を取ることで、境界の情報から累積を経て区間全体差分を復元しました。</p>
+        <div class="bg-yellow-50 border-2 border-yellow-500 p-3 my-3 text-sm font-bold win-panel">
+          つまり、いもす法の本質は、<br />
+          「区間全体の状態を直接更新するのではなく、状態が変化する境界だけを記録し、最後に累積することで本来の状態を復元すること」です。
+        </div>
+        <p class="text-sm mb-6">これは非常に重要な考え方です。</p>
+
+        <!-- 3.8 -->
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+          3.8 計算量
+        </h3>
+        <p class="text-sm mb-2">
+          客の人数を \(C\)、扱う時間帯の数を \(T\) とします。1人の客について、入店時刻に +1、退店時刻の次に -1 の2回だけ更新するので \(O(C)\) です。その後、差分配列に対して累積和を1回取るので \(O(T)\) です。したがって、全体では、
+        </p>
+        <div class="bg-yellow-50 border-2 border-yellow-500 p-3 my-2 text-center text-base font-bold win-panel">
+          \(O(C + T)\)
+        </div>
+        <p class="text-sm mb-3">
+          となります。一方、区間全体を直接更新する愚直な方法では \(O(C \times T)\) 程度かかる可能性があります。
+        </p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-3 text-xs text-center font-bold">
+          <div class="bg-red-50 border-2 border-red-300 p-3 win-panel">
+            愚直：区間全体を更新 ➔ \(O(C \times T)\)
+          </div>
+          <div class="bg-green-50 border-2 border-green-300 p-3 win-panel">
+            いもす法：境界だけ更新 ➔ 累積和 ➔ \(O(C + T)\)
+          </div>
+        </div>
+      </section>
+<!-- 4. 二次元累積和 -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left mb-6">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          4. 二次元累積和
+        </h2>
+        <p class="text-sm mb-3">
+          ここまで扱ってきた累積和は、一次元の配列について考えていました。<br />
+          では、次のような二次元の配列でも、同じようなことができないでしょうか？
+        </p>
+        <div class="bg-gray-50 p-2 mb-3 win-panel font-mono text-xs w-32">
+          1 2 3 4<br />
+          5 6 7 8<br />
+          9 0 1 2
+        </div>
+        <p class="text-sm mb-6">
+          実はできます。一次元の累積和では「左からここまでの和」を保存することで区間の和を高速に求めました。二次元では**「左上からここまでの長方形の和」**を保存すると考えます。
+        </p>
+
+        <!-- 4.1 -->
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+          4.1 二次元累積和の考え方
+        </h3>
+        <p class="text-sm mb-2">例えば、</p>
+        <div class="bg-gray-50 p-2 mb-2 win-panel font-mono text-xs w-24">
+          1 2 3<br />
+          4 5 6<br />
+          7 8 9
+        </div>
+        <p class="text-sm mb-3">
+          という二次元配列を考えます。一次元の累積和では \(A[0]\), \(A[0]+A[1]\) のように「ここまで」の情報を保存しました。二次元でも考え方は同じで、左上からある位置までの長方形（例えば \(\begin{pmatrix} 1 & 2 \\ 4 & 5 \end{pmatrix}\) のような領域）の和を保存します。
+        </p>
+        <p class="text-sm mb-6 font-bold text-blue-900">
+          つまり、左上 (0,0) から現在位置までの長方形の和を保存しておくわけです。
+        </p>
+
+        <!-- 4.2 -->
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+          4.2 二次元累積和はどうやって作る？
+        </h3>
+        <p class="text-sm mb-2">
+          現在のマス <code>A[i][j]</code> までの累積和を考えます。すでに上側、左側、左上の累積和が分かっているとしましょう。
+        </p>
+        
+        <!-- SVG 1: 二次元累積和の構築概念図 -->
+        <div class="my-4 max-w-xs mx-auto">
+          <svg viewBox="0 0 240 180" class="w-full h-auto border-2 border-gray-400 bg-gray-50 rounded" xmlns="http://www.w3.org/2000/svg">
+            <!-- 領域 ① (左上) -->
+            <rect x="20" y="20" width="130" height="90" fill="#DBEAFE" stroke="#1D4ED8" stroke-width="1.5" />
+            <text x="85" y="70" font-size="16" font-weight="bold" fill="#1E40AF" text-anchor="middle">①</text>
+
+            <!-- 領域 ② (右上) -->
+            <rect x="150" y="20" width="60" height="90" fill="#E0E7FF" stroke="#4338CA" stroke-width="1.5" />
+            <text x="180" y="70" font-size="16" font-weight="bold" fill="#3730A3" text-anchor="middle">②</text>
+
+            <!-- 領域 ③ (左下) -->
+            <rect x="20" y="110" width="130" height="50" fill="#E0E7FF" stroke="#4338CA" stroke-width="1.5" />
+            <text x="85" y="140" font-size="16" font-weight="bold" fill="#3730A3" text-anchor="middle">③</text>
+
+            <!-- マス A (右下) -->
+            <rect x="150" y="110" width="60" height="50" fill="#FEF08A" stroke="#CA8A04" stroke-width="2" />
+            <text x="180" y="140" font-size="16" font-weight="bold" fill="#854D0E" text-anchor="middle">A</text>
+          </svg>
+        </div>
+
+        <p class="text-sm mb-2">欲しいのは ① + ② + ③ + A です。</p>
+        <p class="text-sm mb-2">ここで「上側 + 左側」とすると、(① + ②) + (① + ③) となり、左上の領域①を2回数えてしまいます。そこで、左上を1回引きます。</p>
+        <p class="text-sm font-bold text-blue-900 mb-2">上側 + 左側 - 左上 + 現在の値</p>
+        <p class="text-sm mb-2">したがって、</p>
+        <div class="bg-yellow-50 border-2 border-yellow-500 p-3 my-2 text-center text-sm font-bold win-panel">
+          \(S[i+1][j+1] = S[i][j+1] + S[i+1][j] - S[i][j] + A[i][j]\)
+        </div>
+        <p class="text-sm mb-6">
+          となります。ポイントは**「上と左を足して、重複した左上を引き、最後に現在の値を足す」**ことです。
+        </p>
+
+        <!-- 4.3 -->
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+          4.3 長方形の和を求める
+        </h3>
+        <p class="text-sm mb-2">
+          二次元累積和を作っておけば、任意の長方形領域の和も高速に求められます。<br />
+          大きな長方形から不要な部分を引きます。
+        </p>
+        
+        <!-- SVG 2: 長方形の和（包除原理）概念図 -->
+        <div class="my-4 max-w-xs mx-auto">
+          <svg viewBox="0 0 240 160" class="w-full h-auto border-2 border-gray-400 bg-gray-50 rounded" xmlns="http://www.w3.org/2000/svg">
+            <!-- 不要・左上（薄グレー） -->
+            <rect x="20" y="20" width="130" height="40" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1" />
+            <!-- 不要・上側（グレー） -->
+            <rect x="150" y="20" width="70" height="40" fill="#E5E7EB" stroke="#9CA3AF" stroke-width="1" />
+            <text x="185" y="40" font-size="11" font-weight="bold" fill="#4B5563" text-anchor="middle">不要</text>
+            <text x="185" y="52" font-size="11" font-weight="bold" fill="#4B5563" text-anchor="middle">上側</text>
+
+            <!-- 不要・左側（グレー） -->
+            <rect x="20" y="60" width="130" height="80" fill="#E5E7EB" stroke="#9CA3AF" stroke-width="1" />
+            <text x="85" y="95" font-size="11" font-weight="bold" fill="#4B5563" text-anchor="middle">不要</text>
+            <text x="85" y="107" font-size="11" font-weight="bold" fill="#4B5563" text-anchor="middle">左側</text>
+
+            <!-- 必要部分（青色ハイライト） -->
+            <rect x="150" y="60" width="70" height="80" fill="#DBEAFE" stroke="#2563EB" stroke-width="2" />
+            <text x="185" y="95" font-size="12" font-weight="bold" fill="#1E40AF" text-anchor="middle">必要</text>
+            <text x="185" y="110" font-size="12" font-weight="bold" fill="#1E40AF" text-anchor="middle">部分</text>
+          </svg>
+        </div>
+
+        <p class="text-sm mb-2">
+          上側と左側を両方引くと、左上の領域を2回引いてしまうため、最後に左上を1回足し戻します（包除原理）。
+        </p>
+        <p class="text-sm mb-2">半開区間 \([x_1, x_2) \times [y_1, y_2)\) で表される長方形の和は、</p>
+        <div class="bg-yellow-50 border-2 border-yellow-500 p-3 my-2 text-center text-sm font-bold win-panel">
+          \(S[x_2][y_2] - S[x_1][y_2] - S[x_2][y_1] + S[x_1][y_1]\)
+        </div>
+        <p class="text-sm mb-6">で求められます。</p>
+
+        <!-- 4.4 -->
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+          4.4 二次元累積和の実装
+        </h3>
+        <div class="code-container mb-3">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-cpp">// 累積和配列の構築
+vector&lt;vector&lt;int&gt;&gt; S(H + 1, vector&lt;int&gt;(W + 1, 0));
+
+for (int i = 0; i &lt; H; ++i) {
+    for (int j = 0; j &lt; W; ++j) {
+        S[i + 1][j + 1]
+            = S[i][j + 1]
+            + S[i + 1][j]
+            - S[i][j]
+            + A[i][j];
+    }
+}
+
+// [x1, x2) * [y1, y2) の和の取得
+int sum = S[x2][y2] - S[x1][y2] - S[x2][y1] + S[x1][y1];</code></pre>
+        </div>
+      </section>
+
+      <!-- 5. 二次元いもす法 -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left mb-6">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          5. 二次元いもす法
+        </h2>
+        <p class="text-sm mb-3">
+          二次元いもす法は、一次元いもす法の考え方を二次元に拡張したものです。<br />
+          理屈を覚える前に、まずは騙されたと思って**「4つの角に +1 と -1 を置く」**実験をしてみましょう。<br />
+          5×5のマス目において、\([1, 4) \times [1, 4)\)（1〜3行、1〜3列の領域）に +1 したいとします。
+        </p>
+
+        <!-- 5.1 -->
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+          5.1 シミュレーション：値の変化を追う
+        </h3>
+
+        <!-- STEP 1: 初期配置 -->
+        <p class="text-sm font-bold text-blue-900 mb-1">【STEP 1】4箇所に値をセットする</p>
+        <p class="text-sm mb-2">
+          左上 (1,1) に <code>+1</code>、右上 (1,4) に <code>-1</code>、左下 (4,1) に <code>-1</code>、右下 (4,4) に <code>+1</code> を配置します。
+        </p>
+        
+        <!-- SVG 1: 初期グリッド -->
+        <div class="my-4 max-w-xs mx-auto">
+          <svg viewBox="0 0 200 200" class="w-full h-auto border-2 border-gray-400 bg-gray-50 rounded" xmlns="http://www.w3.org/2000/svg">
+            <g fill="none" stroke="#D1D5DB" stroke-width="1">
+              <path d="M0,40 H200 M0,80 H200 M0,120 H200 M0,160 H200" />
+              <path d="M40,0 V200 M80,0 V200 M120,0 V200 M160,0 V200" />
+            </g>
+            <rect x="40" y="40" width="40" height="40" fill="#DCFCE7" />
+            <text x="60" y="65" font-size="14" font-weight="bold" fill="#15803D" text-anchor="middle">+1</text>
+
+            <rect x="160" y="40" width="40" height="40" fill="#FEE2E2" />
+            <text x="180" y="65" font-size="14" font-weight="bold" fill="#B91C1C" text-anchor="middle">-1</text>
+
+            <rect x="40" y="160" width="40" height="40" fill="#FEE2E2" />
+            <text x="60" y="185" font-size="14" font-weight="bold" fill="#B91C1C" text-anchor="middle">-1</text>
+
+            <rect x="160" y="160" width="40" height="40" fill="#DCFCE7" />
+            <text x="180" y="185" font-size="14" font-weight="bold" fill="#15803D" text-anchor="middle">+1</text>
+          </svg>
+        </div>
+
+        <!-- STEP 2: 横方向に累積和 -->
+        <p class="text-sm font-bold text-blue-900 mb-1">【STEP 2】横方向（左から右）へ累積和を取る</p>
+        <p class="text-sm mb-2">
+          各行について、左から順に足し合わせていきます。すると、<code>+1</code> が右方向へ波及し、<code>-1</code> の手前まで 1 が続きます。
+        </p>
+
+        <!-- SVG 2: 横累積和の結果 -->
+        <div class="my-4 max-w-xs mx-auto">
+          <svg viewBox="0 0 200 200" class="w-full h-auto border-2 border-gray-400 bg-gray-50 rounded" xmlns="http://www.w3.org/2000/svg">
+            <g fill="none" stroke="#D1D5DB" stroke-width="1">
+              <path d="M0,40 H200 M0,80 H200 M0,120 H200 M0,160 H200" />
+              <path d="M40,0 V200 M80,0 V200 M120,0 V200 M160,0 V200" />
+            </g>
+            <!-- 行 1 -->
+            <text x="60" y="65" font-size="14" font-weight="bold" fill="#1D4ED8" text-anchor="middle">1</text>
+            <text x="100" y="65" font-size="14" font-weight="bold" fill="#1D4ED8" text-anchor="middle">1</text>
+            <text x="140" y="65" font-size="14" font-weight="bold" fill="#1D4ED8" text-anchor="middle">1</text>
+            <text x="180" y="65" font-size="14" fill="#9CA3AF" text-anchor="middle">0</text>
+
+            <!-- 行 4 -->
+            <text x="60" y="185" font-size="14" font-weight="bold" fill="#B91C1C" text-anchor="middle">-1</text>
+            <text x="100" y="185" font-size="14" font-weight="bold" fill="#B91C1C" text-anchor="middle">-1</text>
+            <text x="140" y="185" font-size="14" font-weight="bold" fill="#B91C1C" text-anchor="middle">-1</text>
+            <text x="180" y="185" font-size="14" fill="#9CA3AF" text-anchor="middle">0</text>
+          </svg>
+        </div>
+
+        <!-- STEP 3: 縦方向に累積和 -->
+        <p class="text-sm font-bold text-blue-900 mb-1">【STEP 3】縦方向（上から下）へ累積和を取る</p>
+        <p class="text-sm mb-2">
+          次に、各列について上から順に足し合わせていきます。すると、1行目で発生した <code>1</code> が下方向へ波及し、4行目の <code>-1</code> で綺麗に打ち消されます。
+        </p>
+
+        <!-- SVG 3: 縦累積和の結果（完成） -->
+        <div class="my-4 max-w-xs mx-auto">
+          <svg viewBox="0 0 200 200" class="w-full h-auto border-2 border-gray-400 bg-gray-50 rounded" xmlns="http://www.w3.org/2000/svg">
+            <g fill="none" stroke="#D1D5DB" stroke-width="1">
+              <path d="M0,40 H200 M0,80 H200 M0,120 H200 M0,160 H200" />
+              <path d="M40,0 V200 M80,0 V200 M120,0 V200 M160,0 V200" />
+            </g>
+            <!-- 加算された矩形領域ハイライト -->
+            <rect x="40" y="40" width="120" height="120" fill="#FEF08A" fill-opacity="0.6" stroke="#CA8A04" stroke-width="2" />
+
+            <!-- 1 が並ぶ（3x3領域） -->
+            <text x="60" y="65" font-size="14" font-weight="bold" fill="#854D0E" text-anchor="middle">1</text>
+            <text x="100" y="65" font-size="14" font-weight="bold" fill="#854D0E" text-anchor="middle">1</text>
+            <text x="140" y="65" font-size="14" font-weight="bold" fill="#854D0E" text-anchor="middle">1</text>
+
+            <text x="60" y="105" font-size="14" font-weight="bold" fill="#854D0E" text-anchor="middle">1</text>
+            <text x="100" y="105" font-size="14" font-weight="bold" fill="#854D0E" text-anchor="middle">1</text>
+            <text x="140" y="105" font-size="14" font-weight="bold" fill="#854D0E" text-anchor="middle">1</text>
+
+            <text x="60" y="145" font-size="14" font-weight="bold" fill="#854D0E" text-anchor="middle">1</text>
+            <text x="100" y="145" font-size="14" font-weight="bold" fill="#854D0E" text-anchor="middle">1</text>
+            <text x="140" y="145" font-size="14" font-weight="bold" fill="#854D0E" text-anchor="middle">1</text>
+          </svg>
+        </div>
+
+        <p class="text-sm font-bold text-blue-900 mb-6">
+          見事に目的の長方形領域だけに +1 が反映されました！
+        </p>
+
+        <!-- 5.2 -->
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+          5.2 二次元いもす法の実装
+        </h3>
+        <p class="text-sm mb-2">
+          この「4角に加算」→「横に累積和」→「縦に累積和」をコードに落とし込みます。
+        </p>
+
+        <div class="code-container mb-3">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-cpp">// 1. クエリの反映 (4箇所への記録)
+// [x1, x2) * [y1, y2) に +v する場合
+diff[x1][y1] += v;
+diff[x1][y2] -= v;
+diff[x2][y1] -= v;
+diff[x2][y2] += v;
+
+// 2. 横方向に累積和
+for (int i = 0; i &lt;= H; ++i) {
+    for (int j = 0; j &lt; W; ++j) {
+        diff[i][j + 1] += diff[i][j];
+    }
+}
+
+// 3. 縦方向に累積和
+for (int i = 0; i &lt; H; ++i) {
+    for (int j = 0; j &lt;= W; ++j) {
+        diff[i + 1][j] += diff[i][j];
+    }
+}</code></pre>
+        </div>
+        <p class="text-sm mb-6">
+          クエリが何個あっても「4箇所の更新」は \(O(1)\) で済むため、最後にまとめて累積和を取れば全体で \(O(HW + Q)\) で計算できます。
+        </p>
+
+        <!-- 5.3 まとめ -->
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+          5.3 まとめ
+        </h3>
+        <div class="bg-yellow-50 border-2 border-yellow-500 p-4 my-3 text-sm win-panel">
+          <p class="font-bold text-blue-900 mb-1">大切なマインド</p>
+          <p>
+            重要なのは、公式を丸暗記することではありません。<br />
+            <strong>「本当に全部計算・更新する必要があるのか？」</strong><br />
+            <strong>「変化する場所だけ記録して、あとから復元できないか？」</strong><br />
+            と考えることです。累積和も、いもす法も、根底にあるのは同じです。<br />
+            <strong>「一度計算した情報を使い回し、同じ仕事を何度も繰り返さない。」</strong><br />
+            これが、今回の講義で身につけてほしい考え方です。
+          </p>
+        </div>
+      </section>
+
+
+<!-- 4.8 -->
+<section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+  <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+    6 第02講のまとめ
+  </h2>
+
+  <p class="text-sm mb-3">
+    今回扱った内容を、ひとつの流れとして整理してみましょう。
+  </p>
+
+  <p class="text-sm mb-2">
+    最初に考えたのは、
+    <strong>「同じ計算を何度も繰り返すのは無駄ではないか？」</strong>
+    という疑問でした。
+    そこで、<strong>「先に計算しておく」</strong>という前処理の考え方が登場しました。
+  </p>
+
+  <p class="text-sm mb-3">
+    累積和では、
+    「配列 → 累積和を作る → 区間の質問を \(O(1)\) で処理」
+    としました。
+    いもす法では、さらに逆向きの発想を使い、
+    「区間への更新 → 境界だけ記録 → 累積和を取る → 最終状態を復元」
+    としました。
+  </p>
+
+  <p class="text-sm mb-4">
+    そして、この考え方は二次元にも拡張できます。
+    （一次元累積和 → 二次元累積和、一次元いもす法 → 二次元いもす法）
+  </p>
+
+  <div class="bg-yellow-50 border-2 border-yellow-500 p-4 my-3 text-sm win-panel">
+    <p class="font-bold text-blue-900 mb-1">大切なマインド</p>
+
+    <p>
+      重要なのは、公式を丸暗記することではありません。<br />
+
+      <strong>「本当に全部計算・更新する必要があるのか？」</strong><br />
+
+      <strong>「変化する場所だけ記録して、あとから復元できないか？」</strong><br />
+
+      と考えることです。
+      累積和も、いもす法も、根底にあるのは同じです。
+    </p>
+
+    <p class="mt-3">
+      <strong>
+        「一度計算した情報を使い回し、同じ仕事を何度も繰り返さない。」
+      </strong>
+    </p>
+
+    <p class="mt-2">
+      これが、今回の講義で身につけてほしい考え方です。
+    </p>
+  </div>
+</section>
+
+
+
+      <!-- ばちゃこんにチャレンジ -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-center">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4 text-left">
+          7 ばちゃこんにチャレンジ
+        </h2>
+
+        <p class="text-sm mb-4 text-left">AtCoder Problems 上で開催しているバーチャルコンテストに挑戦できます。</p>
+
+        <a
+          href="https://kenkoooo.com/atcoder/#/contest/show/4980190e-9ea0-40f1-b4fc-92c3b1342d9f"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-block bg-blue-600 text-white px-4 py-2 border-2 border-blue-900 shadow-[3px_3px_0_#1e3a8a] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition font-bold text-sm"
+        >
+          バチャコンを開く
+        </a>
+      </section>
+    </main>
+
+    <footer class="text-center py-10">
+      <div
+        class="inline-block bg-white border-2 border-gray-400 px-6 py-2 shadow-[2px_2px_0_#000] text-sm font-bold text-gray-700 win-panel"
+      >
+        IQ C++ Autumn Workshop 2026 - Rep. Takiguchi
+      </div>
+    </footer>
+
+    <script>
+      hljs.highlightAll();
+
+      function copyCode(btn) {
+        const container = btn.closest('.code-container');
+        const code = container.querySelector('code').innerText;
+        navigator.clipboard.writeText(code);
+
+        const originalText = btn.innerText;
+        btn.innerText = '完了！';
+
+        const isGray = btn.classList.contains('bg-gray-600');
+        const defaultBg = isGray ? 'bg-gray-600' : 'bg-blue-600';
+
+        btn.classList.remove(defaultBg);
+        btn.classList.add('bg-green-600');
+
+        setTimeout(() => {
+          btn.innerText = originalText;
+          btn.classList.remove('bg-green-600');
+          btn.classList.add(defaultBg);
+        }, 1500);
+      }
+    </script>
+  </body>
+</html>

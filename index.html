@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>C++ 初心者講習会 カリキュラムポータル</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+      body {
+        background-color: #c0c0c0;
+        font-family: 'MS PGothic', 'Hiragino Kaku Gothic ProN', sans-serif;
+      }
+
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+      .blink {
+        animation: blink 1s infinite;
+      }
+
+      .win-border {
+        border: 4px solid;
+        border-color: #ffffff #808080 #808080 #ffffff;
+      }
+      .win-button {
+        border: 2px solid;
+        border-color: #ffffff #808080 #808080 #ffffff;
+        background-color: #c0c0c0;
+      }
+      .win-button:active {
+        border-color: #808080 #ffffff #ffffff #808080;
+        padding-top: 2px;
+        padding-left: 2px;
+      }
+    </style>
+  </head>
+
+  <body class="text-black pb-20">
+    <header class="text-center py-10">
+      <div class="inline-block bg-white border-4 border-gray-500 shadow-[4px_4px_0_#888] px-8 py-4 text-left">
+        <h1 class="text-2xl font-bold text-red-600 border-b-4 border-double border-red-500 pb-2 text-center">
+          C++ 初心者講習会：10講マスターコース・応用編
+        </h1>
+        <p class="mt-3 text-sm text-center">〜IQPC 上位を目指して〜</p>
+        <p class="mt-2 blink text-blue-700 font-bold text-center">現在 1講義公開中！！</p>
+      </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-4 flex flex-col justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-2">
+              第00講：計算量・復習
+            </h2>
+            <p class="text-xs mb-3 text-gray-600 italic">/00/index.html</p>
+            <p class="text-sm">計算量（O表記）の基本と、基礎編で学んだC++構文やSTLの要点を復習します。</p>
+          </div>
+          <a href="./00/index.html" class="mt-4 text-center win-button py-1 font-bold text-sm hover:bg-yellow-100"
+            >開く(O)</a
+          >
+        </div>
+
+        <div class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-4 flex flex-col justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-2">
+              第01講：全探索・bit全探索
+            </h2>
+            <p class="text-xs mb-3 text-gray-600 italic">/01/index.html</p>
+            <p class="text-sm">すべてのパターンを調べる全探索と、ビット演算を利用した全探索を学びます。</p>
+          </div>
+          <a href="./01/index.html" class="mt-4 text-center win-button py-1 font-bold text-sm hover:bg-yellow-100"
+            >開く(O)</a
+          >
+        </div>
+
+        <div class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-4 flex flex-col justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-2">
+              第02講：累積和・いもす法
+            </h2>
+            <p class="text-xs mb-3 text-gray-600 italic">/02/index.html</p>
+            <p class="text-sm">区間和を高速に求める累積和と、区間加算を効率的に処理するいもす法をマスターします。</p>
+          </div>
+          <a href="./02/index.html" class="mt-4 text-center win-button py-1 font-bold text-sm hover:bg-yellow-100"
+            >開く(O)</a
+          >
+        </div>
+
+        <div class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-4 flex flex-col justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-2">
+              第03講：二分探索
+            </h2>
+            <p class="text-xs mb-3 text-gray-600 italic">/03/index.html</p>
+            <p class="text-sm">ソート済みデータを高速に検索する二分探索（std::lower_bound等）を学びます。</p>
+          </div>
+          <a href="./03/index.html" class="mt-4 text-center win-button py-1 font-bold text-sm hover:bg-yellow-100"
+            >開く(O)</a
+          >
+        </div>
+
+        <div class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-4 flex flex-col justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-2">
+              第04講：尺取り法
+            </h2>
+            <p class="text-xs mb-3 text-gray-600 italic">/04/index.html</p>
+            <p class="text-sm">連続する区間に関する条件判定を線形時間で処理する尺取り法を学びます。</p>
+          </div>
+          <a href="./04/index.html" class="mt-4 text-center win-button py-1 font-bold text-sm hover:bg-yellow-100"
+            >開く(O)</a
+          >
+        </div>
+
+        <div class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-4 flex flex-col justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-green-900 bg-green-100 border-l-4 border-green-900 px-3 py-1 mb-2">
+              第05講：グラフ理論とUnionFind
+            </h2>
+            <p class="text-xs mb-3 text-gray-600 italic">/05/index.html</p>
+            <p class="text-sm">頂点と辺による表現方法と、グループの結合・判定を高速に行うUnion-Findを学びます。</p>
+          </div>
+          <a href="./05/index.html" class="mt-4 text-center win-button py-1 font-bold text-sm hover:bg-yellow-100"
+            >開く(O)</a
+          >
+        </div>
+
+        <div class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-4 flex flex-col justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-green-900 bg-green-100 border-l-4 border-green-900 px-3 py-1 mb-2">
+              第06講：BFS・DFS
+            </h2>
+            <p class="text-xs mb-3 text-gray-600 italic">/06/index.html</p>
+            <p class="text-sm">幅優先探索（BFS）と深さ優先探索（DFS）を用いてグラフやグリッドを探索します。</p>
+          </div>
+          <a href="./06/index.html" class="mt-4 text-center win-button py-1 font-bold text-sm hover:bg-yellow-100"
+            >開く(O)</a
+          >
+        </div>
+
+        <div class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-4 flex flex-col justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-green-900 bg-green-100 border-l-4 border-green-900 px-3 py-1 mb-2">
+              第07講：DP
+            </h2>
+            <p class="text-xs mb-3 text-gray-600 italic">/07/index.html</p>
+            <p class="text-sm">動的計画法（Dynamic Programming）の考え方と基本的な漸化式の立て方を学びます。</p>
+          </div>
+          <a href="./07/index.html" class="mt-4 text-center win-button py-1 font-bold text-sm hover:bg-yellow-100"
+            >開く(O)</a
+          >
+        </div>
+
+        <div class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-4 flex flex-col justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-red-900 bg-red-100 border-l-4 border-red-900 px-3 py-1 mb-2">
+              第08講：IQPC演習(1)
+            </h2>
+            <p class="text-xs mb-3 text-gray-600 italic">/08/index.html</p>
+            <p class="text-sm">実践的なコンテスト形式の問題を解き、ここまでに学んだアルゴリズムを活用しましょう。</p>
+          </div>
+          <a href="./08/index.html" class="mt-4 text-center win-button py-1 font-bold text-sm hover:bg-yellow-100"
+            >開く(O)</a
+          >
+        </div>
+
+
+                <div class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-4 flex flex-col justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-red-900 bg-red-100 border-l-4 border-red-900 px-3 py-1 mb-2">
+              第09講：IQPC演習(2)
+            </h2>
+            <p class="text-xs mb-3 text-gray-600 italic">/09/index.html</p>
+            <p class="text-sm">実践的なコンテスト形式の問題を解き、ここまでに学んだアルゴリズムを活用しましょう。</p>
+          </div>
+          <a href="./09/index.html" class="mt-4 text-center win-button py-1 font-bold text-sm hover:bg-yellow-100"
+            >開く(O)</a
+          >
+        </div>
+
+        /*<div
+          class="col-span-1 md:col-span-2 bg-yellow-100 border-4 border-yellow-600 shadow-[4px_4px_0_#888] p-4 flex flex-col justify-between"
+        >
+          <div>
+            <h2 class="text-lg font-bold text-red-900 bg-red-100 border-l-4 border-red-900 px-3 py-1 mb-2">
+              第09講：IQPC演習(2)
+            </h2>
+            <p class="text-xs mb-3 text-gray-600 italic">/09/index.html</p>
+            <p class="text-sm">総合演習と解説。実践力を固めて実戦に備えましょう！</p>
+          </div>
+          <a
+            href="./09/index.html"
+            class="mt-4 text-center win-button py-1 font-bold text-sm bg-yellow-200 hover:bg-yellow-300"
+            >最終講義を開始する</a
+          >
+        </div>
+      </div>*/
+    </main>
+
+    <footer class="text-center py-10">
+      <div
+        class="inline-block bg-white border-2 border-gray-400 px-6 py-2 shadow-[2px_2px_0_#000] text-sm font-bold italic"
+      >
+        (C) 2026 IQ style C++ Curriculum Support Unit
+      </div>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>第01講：全探索・bit全探索 | IQ C++講習会</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
+
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+      body {
+        background-color: #c0c0c0;
+        font-family: 'MS PGothic', 'Hiragino Kaku Gothic ProN', sans-serif;
+      }
+
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+      .blink {
+        animation: blink 1s infinite;
+      }
+      .win-panel {
+        border: 2px solid;
+        border-color: #ffffff #808080 #808080 #ffffff;
+      }
+      pre {
+        background: #ffffff !important;
+        border: 2px solid #808080 !important;
+        box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
+        border-radius: 0px;
+        margin: 0.5rem 0 !important;
+        padding: 1rem !important;
+        overflow-x: auto;
+      }
+      code.hljs {
+        background: transparent !important;
+        font-family: 'Consolas', 'Monaco', 'Andale Mono', 'Ubuntu Mono', monospace !important;
+        font-size: 0.9rem !important;
+        padding: 0 !important;
+        color: #000000;
+      }
+      .code-container {
+        position: relative;
+        height: 100%;
+      }
+      .code-container pre {
+        height: 100%;
+      }
+    </style>
+  </head>
+
+  <body class="text-black pb-10">
+    <header class="text-center py-10">
+      <div class="inline-block bg-white border-4 border-gray-500 shadow-[4px_4px_0_#888] px-8 py-4 text-left">
+        <h1 class="text-2xl font-bold text-blue-800 border-b-4 border-double border-blue-500 pb-2 text-center">
+          第01講：全探索・bit全探索
+        </h1>
+
+        <p class="mt-3 text-sm text-center font-bold">
+          「全部試す」は、立派なアルゴリズムである。<br />
+          答えとなる可能性のある候補を漏らさず調べ上げよう。
+        </p>
+
+        <p class="mt-2 blink text-blue-700 font-bold text-center">★ 考えられる答えを、全部調べ上げろ ★</p>
+      </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 space-y-10">
+      <!-- 0. 探索とは -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          0. 探索とは
+        </h2>
+        <p class="text-sm mb-3">
+          突然ですが、次のような問題を考えてみましょう。
+        </p>
+        <p class="text-sm font-bold bg-gray-100 p-2 mb-3 win-panel text-center">
+          1〜100の中から、答えの数字を1つ当ててください。どうやって探しますか？
+        </p>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 my-4 bg-blue-50 p-4 win-panel">
+          <div class="text-xs font-mono space-y-1 text-center sm:text-left">
+            <div>1？ ➔ <span class="text-red-600 font-bold">違う</span></div>
+            <div>2？ ➔ <span class="text-red-600 font-bold">違う</span></div>
+            <div>3？ ➔ <span class="text-red-600 font-bold">違う</span></div>
+            <div class="text-gray-400">...</div>
+            <div>73？ ➔ <span class="text-green-600 font-bold">正解！</span></div>
+          </div>
+          <svg class="w-24 h-24 text-blue-600 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+        </div>
+        <p class="text-sm mb-2">
+          このように、<strong>答えとなる可能性のあるものを調べて、条件を満たすものを探す</strong>ことを<strong>探索</strong>といいます。
+        </p>
+        <p class="text-sm bg-yellow-50 border-2 border-yellow-500 p-3 win-panel">
+          プログラミングでは、<strong>「何を調べれば答えが見つかるのか？」</strong>を考えることが非常に重要です。
+        </p>
+      </section>
+
+      <!-- 1. 全探索とは -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          1. 全探索とは
+        </h2>
+        <p class="text-sm mb-3">
+          探索の方法の一つが、<strong>全探索</strong>です。全探索とは、<strong>あり得るパターンを全部列挙して調べる</strong>という、とても単純な方法です。
+        </p>
+        <p class="text-sm mb-3">
+          例えば、1〜10の中から答えを探すなら、<code>1, 2, 3, 4, 5, 6, 7, 8, 9, 10</code> を全部調べます。<br />
+          「そんな単純な方法でいいの？」と思うかもしれません。しかし、競技プログラミングでは、この<strong>「全部試す」</strong>という考え方が非常に重要です。
+        </p>
+        <p class="text-sm font-bold text-blue-800 mb-2">
+          なぜなら、全部試せば、答えを見落とすことがないからです。
+        </p>
+        <p class="text-sm">
+          ただし、問題は「全部」がどれくらいあるかです。
+        </p>
+      </section>
+
+      <!-- 2. 全探索が使える条件 -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          2. 全探索が使える条件
+        </h2>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">2.1 「全部」は何通り？</h3>
+        <p class="text-sm mb-2">パターン数によって全探索の総数は大きく変化します。</p>
+        <ul class="text-sm list-disc ml-5 space-y-1 mb-4">
+          <li>\(N\) 個の整数から1個を選ぶなら： \(N\) 通り</li>
+          <li>2個を選ぶなら： \(\frac{N(N-1)}{2}\) 通り程度</li>
+          <li>\(N\) 個のものから、それぞれ「選ぶ / 選ばない」を決めるなら： \(2^N\) 通り</li>
+        </ul>
+        <p class="text-sm font-bold mb-4">つまり、全探索では「全部で何通りあるのか？」を考えることが非常に重要です。</p>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">2.2 計算機はどれくらい速い？</h3>
+        <p class="text-sm mb-3">
+          一般に、競技プログラミングでは、<strong>\(10^8\) 回（約1億回）</strong>程度の単純な計算を1秒あたりの目安として考えることがあります。
+        </p>
+        <p class="text-sm mb-3 text-gray-700">
+          ※ これはあくまでざっくりした目安です。実際の実行時間は「1回の計算にかかる時間」「使用する言語」「メモリへのアクセス」「制限時間」「実装内容」などによって変わります。
+        </p>
+        <p class="text-sm font-bold bg-blue-50 border-2 border-blue-400 p-3 mb-4 win-panel">
+          まずは \(10^8\) 程度を一つの目安として覚えておきましょう。<br />
+          例えば制限時間が2秒なら、 \(2 \times 10^8\) 程度までなら「全探索で間に合う可能性がある」と考えられます。
+        </p>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">2.3 全探索では「計算量」を考える</h3>
+        <div class="space-y-3 mb-4">
+          <div>
+            <p class="text-xs font-mono mb-1">■ O(N) の全探索</p>
+            <div class="code-container">
+              <pre><code class="language-cpp">for (int i = 0; i < N; ++i) {
+    // O(1)程度の処理
+}</code></pre>
+            </div>
+          </div>
+          <div>
+            <p class="text-xs font-mono mb-1">■ O(N^2) の全探索</p>
+            <div class="code-container">
+              <pre><code class="language-cpp">for (int i = 0; i < N; ++i) {
+    for (int j = 0; j < N; ++j) {
+        // O(1)程度の処理
+    }
+}</code></pre>
+            </div>
+          </div>
+        </div>
+        <p class="text-sm mb-2">
+          さらに、\(N\) 個のものから「選ぶ / 選ばない」を全部試すなら <strong>\(O(2^N)\)</strong> になります。\(N\) が大きくなると \(2^N\) は急激に増加するため、全探索を使えるかどうかは「全部で何通りあるのか」を計算して判断することが重要です。
+        </p>
+      </section>
+
+      <!-- 3. 2つのものを選ぶ全探索 -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          3. 2つのものを選ぶ全探索
+        </h2>
+        <p class="text-sm mb-3">ここから、実際の問題を解いてみましょう。</p>
+        <div class="bg-gray-100 border-2 border-gray-400 p-3 mb-4 win-panel">
+          <a href="https://atcoder.jp/contests/abc187/tasks/abc187_b" target="_blank" rel="noopener noreferrer" class="text-blue-700 underline font-bold hover:text-blue-900">
+            ABC187B - Gentle Pairs ➔
+          </a>
+          <p class="text-xs mt-1">\(N\) 個の点が与えられます。その中から2つの点を選び、条件を満たす組が何通りあるかを求めます。</p>
+        </div>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">3.1 まずは数値例</h3>
+        <p class="text-sm mb-2">入力例： \(N = 3\), 点1: (0, 0), 点2: (1, 2), 点3: (2, 1)</p>
+        <div class="overflow-x-auto mb-4">
+          <table class="min-w-full text-xs text-center border-collapse border border-gray-400">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="border border-gray-400 p-2">点の組み合わせ</th>
+                <th class="border border-gray-400 p-2">傾きの計算</th>
+                <th class="border border-gray-400 p-2">条件（-1 以上 1 以下）</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="border border-gray-400 p-2">点1 (0,0) と 点2 (1,2)</td>
+                <td class="border border-gray-400 p-2 font-mono">(2-0)/(1-0) = 2</td>
+                <td class="border border-gray-400 p-2 text-red-600 font-bold">× 満たさない</td>
+              </tr>
+              <tr>
+                <td class="border border-gray-400 p-2">点1 (0,0) と 点3 (2,1)</td>
+                <td class="border border-gray-400 p-2 font-mono">(1-0)/(2-0) = 1/2</td>
+                <td class="border border-gray-400 p-2 text-green-600 font-bold">◯ 満たす</td>
+              </tr>
+              <tr>
+                <td class="border border-gray-400 p-2">点2 (1,2) と 点3 (2,1)</td>
+                <td class="border border-gray-400 p-2 font-mono">(1-2)/(2-1) = -1</td>
+                <td class="border border-gray-400 p-2 text-green-600 font-bold">◯ 満たす</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-sm font-bold mb-4">したがって、答えは 2 です。</p>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">3.2 何を全探索すればいい？</h3>
+        <p class="text-sm mb-2">
+          \(N\) 個の点から2つを選ぶ方法は \(\frac{N(N-1)}{2}\) 通りです。<br />
+          この問題では \(N \le 1000\) なので、最大でも \(\frac{1000 \times 999}{2} = 499,500\) 通り（約50万通り）しかありません。<br />
+          したがって、<strong>2つの点を全部試しても十分間に合う</strong>と判断できます。
+        </p>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">3.3 C++で実装する</h3>
+        <p class="text-sm mb-2">2つの点を重複なく全探索するには、二重 <code>for</code> 文を使い、内側のループ開始位置を <code>j = i + 1</code> とします。</p>
+        <div class="code-container mb-3">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-cpp">for (int i = 0; i < N; ++i) {
+    for (int j = i + 1; j < N; ++j) {
+        // 点 i と点 j を調べる (i < j が常に成り立つ)
+    }
+}</code></pre>
+        </div>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">3.4 条件を計算する (小数を避けるテクニック)</h3>
+        <p class="text-sm mb-2">
+          2点を結ぶ直線の傾き条件 \(\left| \frac{y_j - y_i}{x_j - x_i} \right| \le 1\) を、割り算（小数誤差）を避けるために式変形します：
+          \[ |y_j - y_i| \le |x_j - x_i| \]
+        </p>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">3.5 完成したコード</h3>
+        <div class="code-container mb-4">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-cpp">#include &lt;bits/stdc++.h&gt;
+using namespace std;
+
+int main() {
+    int N;
+    cin >> N;
+
+    vector&lt;int&gt; x(N), y(N);
+
+    for (int i = 0; i < N; ++i) {
+        cin >> x[i] >> y[i];
+    }
+
+    int res = 0;
+
+    for (int i = 0; i < N; ++i) {
+        for (int j = i + 1; j < N; ++j) {
+            int dx = x[j] - x[i];
+            int dy = y[j] - y[i];
+
+            if (abs(dy) <= abs(dx)) {
+                ++res;
+            }
+        }
+    }
+
+    cout << res << endl;
+}</code></pre>
+        </div>
+      </section>
+
+      <!-- 4. bit全探索とは -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          4. bit全探索とは
+        </h2>
+        <p class="text-sm mb-3">
+          \(N\) 個のものから<strong>好きな個数だけ選ぶ（選ぶ / 選ばないの組合せ）</strong>場合はどうでしょうか？<br />
+          例えば、3個のアイテム <code>{C, C++, C#}</code> から選ぶ場合、各アイテムに対して「選ばない (0) / 選ぶ (1)」を割り当てます。
+        </p>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs font-mono my-3">
+          <div class="p-2 bg-gray-100 border border-gray-400 win-panel">000 (0個)</div>
+          <div class="p-2 bg-gray-100 border border-gray-400 win-panel">001 (1個)</div>
+          <div class="p-2 bg-gray-100 border border-gray-400 win-panel">010 (1個)</div>
+          <div class="p-2 bg-gray-100 border border-gray-400 win-panel">011 (2個)</div>
+          <div class="p-2 bg-gray-100 border border-gray-400 win-panel">100 (1個)</div>
+          <div class="p-2 bg-gray-100 border border-gray-400 win-panel">101 (2個)</div>
+          <div class="p-2 bg-gray-100 border border-gray-400 win-panel">110 (2個)</div>
+          <div class="p-2 bg-gray-100 border border-gray-400 win-panel">111 (3個)</div>
+        </div>
+        <p class="text-sm font-bold text-blue-800">
+          全組み合わせは \(2^3 = 8\) 通りになります（「何も選ばない」も含まれます）。この全パターンを効率よく調べる手法が<strong>bit全探索</strong>です。
+        </p>
+      </section>
+
+      <!-- 5. 選び方を「1つの数」で表す -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          5. 選び方を「1つの数」で表す
+        </h2>
+        <p class="text-sm mb-3">
+          <code>000</code> 〜 <code>111</code> の並びは、そのまま2進数として捉えることができます。
+        </p>
+        <div class="flex justify-center mb-4">
+          <div class="bg-blue-50 border-2 border-blue-400 p-4 win-panel text-center text-xs font-mono space-y-1">
+            <div>01101 (2進数) ➔ 13 (10進数)</div>
+            <div class="text-blue-800 font-bold mt-2">0番:選ぶ(1) | 1番:選ばない(0) | 2番:選ぶ(1) | 3番:選ぶ(1) | 4番:選ばない(0)</div>
+          </div>
+        </div>
+        <p class="text-sm">
+          つまり、\(N\) 個の「選ぶ / 選ばない」の状態全体を、<strong>1個の整数 <code>int bit</code></strong> で表すことができます。
+        </p>
+      </section>
+
+      <!-- 6. ビット演算とシフト演算 -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          6. ビット演算とシフト演算
+        </h2>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">6.1 ビット演算 (&amp;, |)</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 text-xs font-mono">
+          <div class="bg-gray-50 border border-gray-400 p-3 win-panel">
+            <p class="font-bold text-blue-900 mb-1">■ AND (&amp;) : 両方1なら1</p>
+            <pre class="my-0">  1101 (13)
+& 1010 (10)
+------
+  1000 (8)</pre>
+          </div>
+          <div class="bg-gray-50 border border-gray-400 p-3 win-panel">
+            <p class="font-bold text-blue-900 mb-1">■ OR (|) : どちらか1なら1</p>
+            <pre class="my-0">  1101 (13)
+| 1010 (10)
+------
+  1111 (15)</pre>
+          </div>
+        </div>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">6.2 シフト演算と 1 &lt;&lt; i</h3>
+        <p class="text-sm mb-2">
+          <code>1 &lt;&lt; i</code> は、\(1\) を左に \(i\) ビットシフトした値（\(= 2^i\)) であり、<strong>「\(i\) 番目のビットだけが1になっているフラグ」</strong>を表します。
+        </p>
+        <div class="bg-yellow-50 border-2 border-yellow-500 p-3 win-panel text-xs font-mono space-y-1 mb-2">
+          <div>1 &lt;&lt; 0 = 00001 (1)</div>
+          <div>1 &lt;&lt; 1 = 00010 (2)</div>
+          <div>1 &lt;&lt; 2 = 00100 (4)</div>
+          <div>1 &lt;&lt; 3 = 01000 (8)</div>
+        </div>
+      </section>
+
+      <!-- 7. bit全探索の実装方法 -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          7. bit全探索の実装方法
+        </h2>
+        <p class="text-sm mb-3">
+          ある選び方 <code>bit</code> において、\(i\) 番目の要素を選んでいるかを判定するには <code>if (bit &amp; (1 &lt;&lt; i))</code> を使用します。
+        </p>
+
+        <!-- SVG Visualizer -->
+        <div class="bg-blue-50 border-2 border-blue-400 p-4 mb-4 win-panel text-center">
+          <p class="text-xs font-bold text-blue-900 mb-2">【視覚的イメージ：bit &amp; (1 &lt;&lt; 2) の判定】</p>
+          <svg class="w-full max-w-md mx-auto" viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- bit = 13 (01101) -->
+            <text x="10" y="25" font-family="monospace" font-size="12" fill="#000">bit (13):</text>
+            <rect x="80" y="10" width="20" height="20" fill="#e5e7eb" stroke="#000"/>
+            <text x="86" y="25" font-family="monospace" font-size="12">0</text>
+            <rect x="105" y="10" width="20" height="20" fill="#bbf7d0" stroke="#000"/>
+            <text x="111" y="25" font-family="monospace" font-size="12">1</text>
+            <rect x="130" y="10" width="20" height="20" fill="#bbf7d0" stroke="#000"/>
+            <text x="136" y="25" font-family="monospace" font-size="12" fill="#166534" font-weight="bold">1</text>
+            <rect x="155" y="10" width="20" height="20" fill="#e5e7eb" stroke="#000"/>
+            <text x="161" y="25" font-family="monospace" font-size="12">0</text>
+            <rect x="180" y="10" width="20" height="20" fill="#bbf7d0" stroke="#000"/>
+            <text x="186" y="25" font-family="monospace" font-size="12">1</text>
+
+            <!-- 1 << 2 -->
+            <text x="10" y="55" font-family="monospace" font-size="12" fill="#000">1 &lt;&lt; 2:</text>
+            <rect x="80" y="40" width="20" height="20" fill="#e5e7eb" stroke="#000"/>
+            <text x="86" y="55" font-family="monospace" font-size="12">0</text>
+            <rect x="105" y="40" width="20" height="20" fill="#e5e7eb" stroke="#000"/>
+            <text x="111" y="55" font-family="monospace" font-size="12">0</text>
+            <rect x="130" y="40" width="20" height="20" fill="#fef08a" stroke="#000"/>
+            <text x="136" y="55" font-family="monospace" font-size="12" fill="#854d0e" font-weight="bold">1</text>
+            <rect x="155" y="40" width="20" height="20" fill="#e5e7eb" stroke="#000"/>
+            <text x="161" y="55" font-family="monospace" font-size="12">0</text>
+            <rect x="180" y="40" width="20" height="20" fill="#e5e7eb" stroke="#000"/>
+            <text x="186" y="55" font-family="monospace" font-size="12">0</text>
+
+            <!-- Line -->
+            <line x1="80" y1="68" x2="200" y2="68" stroke="#000" stroke-width="2"/>
+
+            <!-- Result -->
+            <text x="10" y="85" font-family="monospace" font-size="12" fill="#000">AND 結果:</text>
+            <text x="130" y="85" font-family="monospace" font-size="12" fill="#166534" font-weight="bold">00100 (≠ 0 ➔ true!)</text>
+          </svg>
+        </div>
+
+        <p class="text-sm mb-2">基本テンプレートコード：</p>
+        <div class="code-container mb-4">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-cpp">#include &lt;bits/stdc++.h&gt;
+using namespace std;
+
+int main() {
+    int N = 3;
+
+    // 0 から (2^N - 1) まで全探索
+    for (int bit = 0; bit < (1 << N); ++bit) {
+        vector&lt;int&gt; S;
+        for (int i = 0; i < N; ++i) {
+            if (bit & (1 << i)) {
+                S.push_back(i); // i 番目の要素を選択
+            }
+        }
+        // S に対する処理
+    }
+}</code></pre>
+        </div>
+      </section>
+
+      <!-- 12. ばちゃこんにチャレンジ！ -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          8. ばちゃこんにチャレンジ！
+        </h2>
+        <p class="text-sm mb-4">
+            ここまで学んだ全探索・bit全探索の知識を使って、実際に問題を解いてみましょう。
+        </p>
+        <a
+          href="https://kenkoooo.com/atcoder/#/contest/show/4980190e-9ea0-40f1-b4fc-92c3b1342d9f"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-block bg-blue-600 text-white px-4 py-2 border-2 border-blue-900 shadow-[3px_3px_0_#1e3a8a] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition font-bold text-sm"
+        >
+          バチャコンを開く ➔
+        </a>
+      </section>
+    </main>
+
+    <footer class="text-center py-10">
+      <div
+        class="inline-block bg-white border-2 border-gray-400 px-6 py-2 shadow-[2px_2px_0_#000] text-sm font-bold text-gray-700 win-panel"
+      >
+        IQ C++ Autumn Workshop 2026 - Rep. Takiguchi
+      </div>
+    </footer>
+
+    <script>
+      hljs.highlightAll();
+
+      function copyCode(btn) {
+        const container = btn.closest('.code-container');
+        const code = container.querySelector('code').innerText;
+        navigator.clipboard.writeText(code);
+
+        const originalText = btn.innerText;
+        btn.innerText = '完了！';
+
+        const isGray = btn.classList.contains('bg-gray-600');
+        const defaultBg = isGray ? 'bg-gray-600' : 'bg-blue-600';
+
+        btn.classList.remove(defaultBg);
+        btn.classList.add('bg-green-600');
+
+        setTimeout(() => {
+          btn.innerText = originalText;
+          btn.classList.remove('bg-green-600');
+          btn.classList.add(defaultBg);
+        }, 1500);
+      }
+    </script>
+  </body>
+</html>
