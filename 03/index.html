@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>第03講：二分探索 | IQ C++講習会</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
+
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+      body {
+        background-color: #c0c0c0;
+        font-family: 'MS PGothic', 'Hiragino Kaku Gothic ProN', sans-serif;
+      }
+
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+      .blink {
+        animation: blink 1s infinite;
+      }
+      .win-panel {
+        border: 2px solid;
+        border-color: #ffffff #808080 #808080 #ffffff;
+      }
+      pre {
+        background: #ffffff !important;
+        border: 2px solid #808080 !important;
+        box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
+        border-radius: 0px;
+        margin: 0.5rem 0 !important;
+        padding: 1rem !important;
+        overflow-x: auto;
+      }
+      code.hljs {
+        background: transparent !important;
+        font-family: 'Consolas', 'Monaco', 'Andale Mono', 'Ubuntu Mono', monospace !important;
+        font-size: 0.9rem !important;
+        padding: 0 !important;
+        color: #000000;
+      }
+      .code-container {
+        position: relative;
+        height: 100%;
+      }
+      .code-container pre {
+        height: 100%;
+      }
+      .array-cell {
+        min-width: 44px;
+      }
+    </style>
+  </head>
+
+  <body class="text-black pb-10">
+    <header class="text-center py-10">
+      <div class="inline-block bg-white border-4 border-gray-500 shadow-[4px_4px_0_#888] px-8 py-4 text-left">
+        <h1 class="text-2xl font-bold text-blue-800 border-b-4 border-double border-blue-500 pb-2 text-center">
+          第03講：二分探索
+        </h1>
+
+        <p class="mt-3 text-sm text-center font-bold">
+          「半分ずつ捨てる」は、探索を劇的に速くする。<br />
+          ソートされた情報から、必要な範囲だけを残そう。
+        </p>
+
+        <p class="mt-2 blink text-blue-700 font-bold text-center">★ 探索範囲を、半分ずつ削り取れ ★</p>
+      </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 space-y-10">
+      <!-- 0. 二分探索とは -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          0. 二分探索とは
+        </h2>
+
+        <p class="text-sm mb-3">今回は二分探索です！</p>
+        <p class="text-sm mb-3">
+          二分探索は、<strong>ソート済みの配列内の要素を高速に求める手法</strong>のことです。
+          ソートされている、つまり小さい順番のことを<strong>昇順</strong>といいます。二分探索は、昇順であることが条件です。
+          以下のような問題を考えてみましょう。
+        </p>
+
+        <div class="bg-yellow-50 border-2 border-yellow-500 p-3 win-panel mb-4">
+          <p class="text-sm font-bold">例：[10, 20, 30, 40, 50, 60, 70] から、50 が格納されたインデックスを見つける</p>
+        </div>
+
+        <div class="flex flex-wrap justify-center gap-2 my-4">
+          <div class="array-cell bg-gray-100 border-2 border-gray-500 win-panel p-2 text-center font-mono text-xs">index 0<br /><strong>10</strong></div>
+          <div class="array-cell bg-gray-100 border-2 border-gray-500 win-panel p-2 text-center font-mono text-xs">index 1<br /><strong>20</strong></div>
+          <div class="array-cell bg-gray-100 border-2 border-gray-500 win-panel p-2 text-center font-mono text-xs">index 2<br /><strong>30</strong></div>
+          <div class="array-cell bg-gray-100 border-2 border-gray-500 win-panel p-2 text-center font-mono text-xs">index 3<br /><strong>40</strong></div>
+          <div class="array-cell bg-yellow-50 border-2 border-yellow-500 win-panel p-2 text-center font-mono text-xs">index 4<br /><strong>50</strong></div>
+          <div class="array-cell bg-gray-100 border-2 border-gray-500 win-panel p-2 text-center font-mono text-xs">index 5<br /><strong>60</strong></div>
+          <div class="array-cell bg-gray-100 border-2 border-gray-500 win-panel p-2 text-center font-mono text-xs">index 6<br /><strong>70</strong></div>
+        </div>
+
+        <p class="text-sm mb-2">まずは、実直なコードとして考えてみましょう。</p>
+        <div class="code-container mb-3">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-cpp">NUM = 50;
+array = [10,20,30,40,50,60,70];
+for(int i = 0; i &lt; array.size(); i++){
+    if (array[i] == NUM){
+        return i;
+    }
+}
+return -1;//見つからなかったときに-1を返すのはプログラムあるある</code></pre>
+        </div>
+
+        <p class="text-sm mb-3">
+          これにかかる計算量は、配列の要素数を <strong>N</strong> として、<strong>O(N)</strong> です。
+          つまり、配列が大きくなればなるほど、見つけるのにかかる時間も比例していくという感じです。
+        </p>
+        <p class="text-sm mb-3">
+          このように、前から順番に探索していくようなアルゴリズムを、<strong>線形探索</strong>といいます。
+          この線形探索を用いて、以下の問題を解いてみてください。
+        </p>
+
+        <div class="bg-gray-100 border-2 border-gray-400 p-3 mb-2 win-panel">
+          <a href="https://atcoder.jp/contests/typical-algorithm/tasks/typical_algorithm_a" target="_blank" rel="noopener noreferrer" class="text-blue-700 underline font-bold hover:text-blue-900">
+            Typical Algorithm - 二分探索の問題 ➔
+          </a>
+        </div>
+      </section>
+
+      <!-- 1. 二分探索のマインド -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          1. 二分探索のマインド
+        </h2>
+
+        <p class="text-sm mb-3">
+          さて、<strong>二分探索</strong>は、全体を二分し、探索していく手法のことです。
+          二分した中のどっちにあるかを見て、どんどんその範囲を狭めていきます。
+          さっきの例を、二分探索のマインドで見てみましょう。
+        </p>
+
+        <div class="bg-blue-50 border-2 border-blue-400 p-4 win-panel mb-4">
+          <p class="text-xs font-bold text-blue-900 mb-2 text-center">探索範囲を半分にする</p>
+          <div class="flex flex-wrap justify-center gap-1 mb-2 font-mono text-xs">
+            <span class="bg-gray-200 border border-gray-500 px-2 py-1">10</span>
+            <span class="bg-gray-200 border border-gray-500 px-2 py-1">20</span>
+            <span class="bg-gray-200 border border-gray-500 px-2 py-1">30</span>
+            <span class="bg-blue-200 border-2 border-blue-700 px-2 py-1 font-bold">40</span>
+            <span class="bg-yellow-200 border-2 border-yellow-700 px-2 py-1">50</span>
+            <span class="bg-yellow-200 border-2 border-yellow-700 px-2 py-1">60</span>
+            <span class="bg-yellow-200 border-2 border-yellow-700 px-2 py-1">70</span>
+          </div>
+          <p class="text-xs text-center">index = 3 の 40 を確認 → 60 は <strong>index &gt; 3</strong> にある</p>
+          <div class="text-center text-blue-800 font-bold my-2">↓</div>
+          <div class="flex flex-wrap justify-center gap-1 font-mono text-xs">
+            <span class="bg-yellow-100 border-2 border-yellow-600 px-3 py-1">50</span>
+            <span class="bg-yellow-100 border-2 border-yellow-600 px-3 py-1 font-bold">60</span>
+            <span class="bg-yellow-100 border-2 border-yellow-600 px-3 py-1">70</span>
+          </div>
+          <p class="text-xs text-center mt-2">新しい範囲は <strong>4 &lt;= index &lt;= 6</strong></p>
+          <div class="text-center text-blue-800 font-bold my-2">↓</div>
+          <div class="flex flex-wrap justify-center gap-1 font-mono text-xs">
+            <span class="bg-gray-200 border border-gray-500 px-2 py-1">50</span>
+            <span class="bg-yellow-200 border-2 border-yellow-700 px-2 py-1 font-bold">60</span>
+            <span class="bg-gray-200 border border-gray-500 px-2 py-1">70</span>
+          </div>
+          <p class="text-xs text-center mt-2">index = 5 の 60 を確認 → 発見！</p>
+        </div>
+
+        <p class="text-sm mb-3">
+          arrayの要素数は7です。これのちょうど真ん中は、<code>index = 3</code> の40ですね。
+          さて、探したいものは60なので、見つけたいものは <code>index &gt; 3</code> にあります。
+          なので、新しい範囲を[50,60,70]の、<code>4 &lt;= index &lt;= 6</code>として、その真ん中の<code>index = 5</code>の値を見ます。
+          <code>array[5] = 60</code>なので、これより左側にあることがわかります。
+        </p>
+
+        <p class="text-sm mb-3">
+          条件は、<code>index &gt; 3</code> かつ <code>index &lt; 5</code>より、見つけたいものは <code>4 &lt;= index &lt;= 4</code>になりました。
+          <code>array[4] = 50</code>なので、無事発見です。
+        </p>
+
+        <p class="text-sm font-bold bg-yellow-50 border-2 border-yellow-500 p-3 win-panel">
+          ポイントは、<strong>「真ん中を見て、どちら側に答えがあるかを判断し、必要な範囲だけを残す」</strong>ことです。
+        </p>
+      </section>
+
+      <!-- 2. 二分探索をコードにする -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          2. 二分探索をコードにする
+        </h2>
+
+        <p class="text-sm mb-3">
+          マインドは分かったところで、これをコードに落としてみましょう。
+          今までやっていたことは、探したい領域の<strong>左と右を表す変数</strong>、その<strong>真ん中にあたる数値</strong>、
+          あとは条件分岐でそれより左にあるのか右にあるのかをみてあげることです。
+        </p>
+        <p class="text-sm mb-3">
+          これを、「左と右が一致し発見できなくなった場合か、見つけたい値が存在し成功する」まで繰り返すアルゴリズムです。
+        </p>
+
+        <p class="text-sm font-bold text-blue-800 mb-2">では、実際のコードです。</p>
+        <div class="code-container mb-4">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-cpp">NUM = 50;
+left = 0;
+right = array.size() - 1;
+left &lt;= 探したいインデックス &lt;= right
+
+while(left!=right){
+    mid = (left + right)/2;//medium,つまり真ん中の値
+    if(array[mid]){
+        return mid;
+    }
+    else if(NUM &lt; array[mid]){
+        //つまり、探したい値より真ん中の数が大きい場合。この場合は新しい範囲がleft &lt;= 探したいインデックス &lt; midより、left &lt;= 探したいインデックス &lt;= mid -1
+        right = mid - 1;
+    }
+    else if(array[mid] &lt; NUM){
+        //つまり、探したい値より真ん中の数が小さい場合。この場合は新しい範囲がmid &lt; 探したいインデックス &lt;= rightになるので、mid + 1 &lt;= 探したいインデックス &lt;= right
+        left = mid + 1;
+    }
+}
+
+return -1;//見つからなかった場合</code></pre>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs mb-4">
+          <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel">
+            <p class="font-bold text-blue-900 mb-1">left</p>
+            <p>探したい領域の左端</p>
+          </div>
+          <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel">
+            <p class="font-bold text-blue-900 mb-1">mid</p>
+            <p>left と right の真ん中</p>
+          </div>
+          <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel">
+            <p class="font-bold text-blue-900 mb-1">right</p>
+            <p>探したい領域の右端</p>
+          </div>
+        </div>
+
+        <p class="text-sm font-bold text-blue-800 mb-2">このようにして、二分探索が実行できました。計算量は、<strong>O(logN)</strong>です。</p>
+      </section>
+
+      <!-- 3. 計算量はなぜO(logN)？ -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          3. 計算量はなぜO(logN)？
+        </h2>
+
+        <p class="text-sm mb-3">
+          O(N)は、Nに比例してプログラムの実行時間がかかるということでした。
+          O(logN)も同様に、logNに比例して実行時間がかかるということになります。なんでlogなのかを説明しましょう。
+        </p>
+        <p class="text-sm mb-3">
+          二分探索は、while文を回すたびに要素数が半分になっていきます。
+          では、最初の数がNで、その数が偶数なら半分に、奇数なら+1して半分にする作業を、最終的に1になるまで繰り返すとします。
+          これにかかる作業回数はどれくらいでしょう。
+        </p>
+
+        <div class="bg-blue-50 border-2 border-blue-400 p-4 win-panel text-xs font-mono leading-6 mb-4">
+          <div>8 -&gt; 4 -&gt; 2 -&gt; 1</div>
+          <div>9 -&gt; 5 -&gt; 3 -&gt; 2 -&gt; 1</div>
+          <div>10 -&gt; 5 -&gt; 3 -&gt; 2 -&gt; 1</div>
+          <div>...</div>
+          <div>14 -&gt; 7 -&gt; 4 -&gt; 2 -&gt; 1</div>
+          <div>15 -&gt; 8 -&gt; 4 -&gt; 2 -&gt; 1</div>
+          <div>...</div>
+          <div>100 -&gt; 50 -&gt; 25 -&gt; 13 -&gt; 7 -&gt; 4 -&gt; 2 -&gt; 1</div>
+          <div>...</div>
+          <div>1024 -&gt; 512 -&gt; 256 -&gt; 128 -&gt; 64 -&gt; 32 -&gt; 16 -&gt; 8 -&gt; 4 -&gt; 2 -&gt; 1</div>
+        </div>
+
+        <p class="text-sm mb-3">
+          このようにみていくと、Nが増えても作業回数は爆発的に伸びないことがわかります。
+          高校数学の知識を使うと、計算回数をcntとして、最初の数をNとすると、
+        </p>
+
+        <div class="bg-gray-100 border-2 border-gray-400 p-4 win-panel text-center mb-4">
+          <div class="text-base">\(2^{x-2} \le N - 1\) を満たす最大の \(x=cnt\)</div>
+        </div>
+
+        <p class="text-sm mb-3">
+          とわかります。係数や小さい引き算を外してあげると、概算として
+          \(2^{cnt} = N \Leftrightarrow logN = cnt\)より、計算量はlogNになります。
+        </p>
+
+        <p class="text-sm mb-3">
+          logNは、Nが非常に大きくなっても変化量が小さくなるという特徴を持っています。
+          実際、\(10^9\)や\(10^{10}\)などの配列の長さに対しても、この二分探索では30回ほどの参照で済んでしまいます。
+        </p>
+
+        <p class="text-sm mb-3">
+          ソート済みであることが条件ですが、これを満たしていれば実行時間を大幅に減らすことができるのです！
+          ちなみに、C++などで採用されている配列にかかるソートの計算量は<strong>O(NlogN)</strong>で、これも半分で探索していくような工夫が凝らされています。
+        </p>
+
+        <div class="bg-yellow-50 border-2 border-yellow-500 p-3 win-panel text-sm font-bold mb-4">
+          ここまでの要点：<strong>1回で探索範囲を半分にできる → 必要な回数はlogN程度になる</strong>
+        </div>
+
+        <p class="text-sm mb-2">先ほどの問題を、二分探索で記述してみてください。</p>
+        <a href="https://atcoder.jp/contests/typical-algorithm/tasks/typical_algorithm_a" target="_blank" rel="noopener noreferrer" class="inline-block bg-blue-600 text-white px-4 py-2 border-2 border-blue-900 shadow-[3px_3px_0_#1e3a8a] hover:translate-x-[1px] hover:translate-y-[1px] transition font-bold text-sm">
+          Typical Algorithm A を開く ➔
+        </a>
+      </section>
+
+      <!-- 発展3. めぐる式二分探索 -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          Ex. めぐる式二分探索
+        </h2>
+
+        <p class="text-sm mb-3">
+          先述した二分探索は、<code>[left,right]</code>の範囲内を探索するようなアルゴリズムでした。
+          先週の累積和のように、<code>[left,right)</code>のほうが都合がよいことが度々あります。
+        </p>
+        <p class="text-sm mb-3">
+          さきほどの書き方は、問題が複雑になるにつれて、leftやrightの意味をしていることや、最終的にその変数がどのような値になっているかがわかりにくいという欠点や、
+          バグった時に対処がしづらい欠点があります。また、問題によって+1,-1を付け替えるのが少し面倒です。
+        </p>
+
+        <div class="bg-blue-50 border-2 border-blue-400 p-4 win-panel mb-4">
+          <p class="text-xs font-bold text-blue-900 mb-2">区間のイメージ</p>
+          <div class="flex items-center justify-center gap-1 font-mono text-sm">
+            <span class="bg-green-100 border-2 border-green-600 px-2 py-1">ok</span>
+            <span class="text-gray-600">───────────────</span>
+            <span class="bg-red-100 border-2 border-red-600 px-2 py-1">ng</span>
+          </div>
+          <p class="text-xs text-center mt-2">「ok は条件を満たす」「ng は条件を満たさない」という状態を維持する</p>
+        </div>
+
+        <p class="text-sm mb-2">
+          leftをok、rightをngと置き換えて、以下のコードを見てみましょう。
+          NUM以下の最大の値を探すコードは以下の通りです。
+        </p>
+
+        <div class="code-container mb-4">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-cpp">ok = -1;
+ng = array.size();
+NUM = ...;
+while(abs(ng - ok) &gt; 1){
+    mid = (ok + ng)/2;
+    if(条件を満たした)
+        ok = mid
+    else
+        ng = mid
+}
+
+return ok;</code></pre>
+        </div>
+
+        <p class="text-sm mb-3">
+          すっきりしたコードになったはずです。okは必ずNUM以下の数となっていて、ok=-1としているので、array[0]がNUMより大きかった場合は-1を、array[N-1]&lt;=NUMの場合はN-1が返ってきます。
+        </p>
+        <p class="text-sm mb-3">
+          この場合、返り値は<strong>条件を満たすギリギリの値</strong>になっています。
+          例えば、NUM以上の最小の値を探したい場合には、<code>ok = N;ng = -1</code>と置き換えるだけで値が返ってきます。
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 text-xs">
+          <div class="bg-green-50 border-2 border-green-500 p-3 win-panel">
+            <p class="font-bold text-green-800 mb-1">ok</p>
+            <p>条件を満たすことが確定している側</p>
+          </div>
+          <div class="bg-red-50 border-2 border-red-500 p-3 win-panel">
+            <p class="font-bold text-red-800 mb-1">ng</p>
+            <p>条件を満たさないことが確定している側</p>
+          </div>
+        </div>
+
+        <p class="text-sm mb-2">先ほどの問題を、めぐる式二分探索で記述してみてください。</p>
+        <a href="https://atcoder.jp/contests/typical-algorithm/tasks/typical_algorithm_a" target="_blank" rel="noopener noreferrer" class="text-blue-700 underline font-bold hover:text-blue-900">
+          Typical Algorithm A を開く ➔
+        </a>
+      </section>
+
+      <!-- 4. lower_bound, upper_bound -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          4. lower_bound, upper_bound
+        </h2>
+
+        <p class="text-sm mb-3">
+          C++には、標準ライブラリに二分探索を実行してくれる関数が存在します。使い方とその意味を簡単に紹介します。
+        </p>
+
+        <div class="code-container mb-4">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-cpp">#include &lt;bits/stdc++.h&gt;
+using namespace std;
+
+int main() {
+    vector&lt;int&gt; a = {0, 10, 13, 14, 20};
+    // aにおいて、12 以上最小の要素は 13
+    cout &lt;&lt; *lower_bound(a.begin(), a.end(), 12) &lt;&lt; endl; // 13
+
+    // 14 以上最小の要素は 14
+    cout &lt;&lt; *lower_bound(a.begin(), a.end(), 14) &lt;&lt; endl; // 14
+
+    // 10 を超える最小の要素は 13
+    cout &lt;&lt; *upper_bound(a.begin(), a.end(), 10) &lt;&lt; endl; // 13
+}</code></pre>
+        </div>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">使い方</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel">
+            <p class="font-mono text-xs mb-2">*lower_bound(配列.begin(), 配列.end(), 値)</p>
+            <p class="text-sm font-bold text-blue-900">「値」以上の最小の値</p>
+          </div>
+          <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel">
+            <p class="font-mono text-xs mb-2">*upper_bound(配列.begin(), 配列.end(), 値)</p>
+            <p class="text-sm font-bold text-blue-900">「値」を超える最小の値</p>
+          </div>
+        </div>
+
+        <div class="bg-yellow-50 border-2 border-yellow-500 p-3 win-panel text-sm mb-4">
+          <strong>先頭に * を付ける必要があります。</strong>
+        </div>
+
+        <p class="text-sm">
+          最初は自分で二分探索に慣れるためにコードを書いたほうがいいですが、慣れてきたらこのような関数を活用しましょう！
+        </p>
+      </section>
+      <!-- 12. ばちゃこんにチャレンジ！ -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          8. ばちゃこんにチャレンジ！
+        </h2>
+        <p class="text-sm mb-4">
+            実際に問題を解いてみましょう。
+        </p>
+        <a
+          href="https://kenkoooo.com/atcoder/#/contest/show/4980190e-9ea0-40f1-b4fc-92c3b1342d9f"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-block bg-blue-600 text-white px-4 py-2 border-2 border-blue-900 shadow-[3px_3px_0_#1e3a8a] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition font-bold text-sm"
+        >
+          バチャコンを開く ➔
+        </a>
+      </section>
+    </main>
+
+    <footer class="text-center py-10">
+      <div class="inline-block bg-white border-2 border-gray-400 px-6 py-2 shadow-[2px_2px_0_#000] text-sm font-bold text-gray-700 win-panel">
+        IQ C++ Autumn Workshop 2026 - Rep. Takiguchi
+      </div>
+    </footer>
+
+    <script>
+      hljs.highlightAll();
+
+      function copyCode(btn) {
+        const container = btn.closest('.code-container');
+        const code = container.querySelector('code').innerText;
+        navigator.clipboard.writeText(code);
+
+        const originalText = btn.innerText;
+        btn.innerText = '完了！';
+
+        const isGray = btn.classList.contains('bg-gray-600');
+        const defaultBg = isGray ? 'bg-gray-600' : 'bg-blue-600';
+
+        btn.classList.remove(defaultBg);
+        btn.classList.add('bg-green-600');
+
+        setTimeout(() => {
+          btn.innerText = originalText;
+          btn.classList.remove('bg-green-600');
+          btn.classList.add(defaultBg);
+        }, 1500);
+      }
+    </script>
+  </body>
+</html>
