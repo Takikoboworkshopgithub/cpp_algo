@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>第04講：尺取り法 | IQ C++講習会</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+      body { background-color: #c0c0c0; font-family: 'MS PGothic', 'Hiragino Kaku Gothic ProN', sans-serif; }
+      @keyframes blink { 50% { opacity: 0; } }
+      .blink { animation: blink 1s infinite; }
+      .win-panel { border: 2px solid; border-color: #ffffff #808080 #808080 #ffffff; }
+      pre { background: #ffffff !important; border: 2px solid #808080 !important; box-shadow: inset 0 0 5px rgba(0,0,0,.1); border-radius: 0 !important; margin: .5rem 0 !important; padding: 1rem !important; overflow-x: auto; }
+      code.hljs { background: transparent !important; font-family: 'Consolas', 'Monaco', 'Andale Mono', 'Ubuntu Mono', monospace !important; font-size: .9rem !important; padding: 0 !important; color: #000; }
+      .code-container { position: relative; }
+      .code-container pre { height: 100%; }
+      .copy-btn { position: absolute; right: .7rem; top: .7rem; z-index: 10; }
+      .step-cell { min-width: 0; }
+      .small-table th, .small-table td { border: 1px solid #9ca3af; padding: .5rem; vertical-align: top; }
+      .small-table th { background: #e5e7eb; }
+      .arrow-label { font-size: 12px; font-weight: bold; }
+      @media (max-width: 640px) { pre { padding: .75rem !important; } }
+    </style>
+  </head>
+  <body class="text-black pb-10">
+    <header class="text-center py-10 px-3">
+      <div class="inline-block max-w-3xl bg-white border-4 border-gray-500 shadow-[4px_4px_0_#888] px-6 sm:px-8 py-4 text-left">
+        <h1 class="text-2xl font-bold text-blue-800 border-b-4 border-double border-blue-500 pb-2 text-center">第04講：尺取り法</h1>
+        <p class="mt-3 text-sm text-center font-bold">「右端を戻さない」ことで、区間を高速に調べよう。<br />区間の性質を見抜けば、全探索を線形時間にできる。</p>
+        <p class="mt-2 blink text-blue-700 font-bold text-center">★ 2つの端点を、無駄なく動かせ ★</p>
+      </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 space-y-10">
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-5 sm:p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">0. 今回の目標</h2>
+        <p class="text-sm mb-3">尺取り法は、区間の左端と右端を少しずつ動かしながら、連続する部分列を効率よく調べるテクニックです。条件に合う区間の個数を数えたり、区間の長さの最大値・最小値を求めたりするときに使えます。</p>
+        <div class="bg-yellow-50 border-2 border-yellow-500 p-3 win-panel text-sm">
+          <strong>今回のゴール：</strong>「総和が 7 以下となる連続区間はいくつあるか？」を、全探索の <span class="font-mono">O(N³)</span> から尺取り法の <span class="font-mono">O(N)</span> へ改善します。
+        </div>
+      </section>
+
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-5 sm:p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">1. 問題</h2>
+        <p class="text-sm mb-3">次の配列を考えます。</p>
+        <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel text-center mb-4">
+          <p class="font-mono text-base font-bold">A = {0, 1, 2, 3, 4, 5},　target = 7</p>
+          <p class="text-sm mt-2">連続する区間のうち、総和が 7 以下となるものはいくつあるでしょうか？</p>
+        </div>
+        <p class="text-sm mb-3">左端 <code>l</code> と右端 <code>r</code> を決めて表します。</p>
+        <div class="bg-blue-50 border-2 border-blue-400 p-3 sm:p-4 win-panel mb-4">
+          <p class="font-bold text-blue-900 text-sm mb-2">半開区間 <code>[left, right)</code> のイメージ</p>
+          <svg viewBox="0 0 600 150" class="w-full" role="img" aria-label="配列 A の区間 [1,4) は、添字 1、2、3 の要素 1、2、3 を含み、添字 4 は含まない図">
+            <text x="24" y="24" font-size="13" fill="#1e3a8a" font-weight="bold">添字</text>
+            <text x="24" y="70" font-size="13" fill="#1e3a8a" font-weight="bold">A[i]</text>
+            <g font-family="monospace" font-size="15" text-anchor="middle">
+              <text x="126" y="24">0</text><text x="206" y="24">1</text><text x="286" y="24">2</text><text x="366" y="24">3</text><text x="446" y="24">4</text><text x="526" y="24">5</text>
+              <rect x="91" y="38" width="70" height="42" fill="#f3f4f6" stroke="#6b7280"/><text x="126" y="64">0</text>
+              <rect x="171" y="38" width="70" height="42" fill="#bbf7d0" stroke="#15803d"/><text x="206" y="64">1</text>
+              <rect x="251" y="38" width="70" height="42" fill="#bbf7d0" stroke="#15803d"/><text x="286" y="64">2</text>
+              <rect x="331" y="38" width="70" height="42" fill="#bbf7d0" stroke="#15803d"/><text x="366" y="64">3</text>
+              <rect x="411" y="38" width="70" height="42" fill="#f3f4f6" stroke="#6b7280"/><text x="446" y="64">4</text>
+              <rect x="491" y="38" width="70" height="42" fill="#f3f4f6" stroke="#6b7280"/><text x="526" y="64">5</text>
+              <line x1="171" y1="31" x2="171" y2="95" stroke="#1d4ed8" stroke-width="3"/><line x1="411" y1="31" x2="411" y2="95" stroke="#b91c1c" stroke-width="3"/>
+              <text x="171" y="113" fill="#1d4ed8" font-weight="bold">left</text><text x="411" y="113" fill="#b91c1c" font-weight="bold">right</text>
+              <path d="M171 128 L401 128" stroke="#15803d" stroke-width="3"/><path d="M392 122 L402 128 L392 134" fill="none" stroke="#15803d" stroke-width="3"/>
+              <text x="286" y="146" fill="#166534" font-size="12">[1, 4) = {1, 2, 3}</text>
+            </g>
+          </svg>
+          <p class="text-xs mt-2">左端 <code>left</code> は含み、右端 <code>right</code> は含みません。したがって、区間の長さは <code>right - left</code> です。</p>
+        </div>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">1.1 まずは全探索してみる：O(N³)</h3>
+        <p class="text-sm mb-2">左端 <code>l</code> と右端 <code>r</code> をすべて試し、そのたびに区間の総和を最初から計算します。区間の選び方が <span class="font-mono">O(N²)</span> 通りあり、総和の計算に最大 <span class="font-mono">O(N)</span> かかるため、全体で <span class="font-mono">O(N³)</span> です。</p>
+        <div class="code-container mb-3">
+          <button class="copy-btn bg-blue-600 text-white text-xs px-2 py-1 win-panel" onclick="copyCode(this)">コピー</button>
+          <pre><code class="language-cpp">#include &lt;bits/stdc++.h&gt;
+using namespace std;
+
+int main() {
+    vector&lt;int&gt; A = {0, 1, 2, 3, 4, 5};
+    int N = A.size();
+    int target = 7;
+    long long cnt = 0;
+
+    for (int l = 0; l &lt; N; ++l) {
+        for (int r = l + 1; r &lt;= N; ++r) {
+            int sum = 0;
+            for (int i = l; i &lt; r; ++i) {
+                sum += A[i];
+            }
+            if (sum &lt;= target) ++cnt;
+        }
+    }
+    cout &lt;&lt; cnt &lt;&lt; endl; // 13
+}</code></pre>
+        </div>
+        <p class="text-sm mb-4">出力は <strong>13</strong> です。ただし、同じ区間の総和を何度も計算しているため、無駄が多くあります。</p>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">1.2 累積和を使う：O(N²)</h3>
+        <p class="text-sm mb-2">累積和を用意しておけば、区間 <code>[l, r)</code> の総和は <code>prefix[r] - prefix[l]</code> で <span class="font-mono">O(1)</span> で求められます。これで全体は <span class="font-mono">O(N²)</span> になります。</p>
+        <div class="code-container mb-3">
+          <button class="copy-btn bg-blue-600 text-white text-xs px-2 py-1 win-panel" onclick="copyCode(this)">コピー</button>
+          <pre><code class="language-cpp">vector&lt;long long&gt; prefix(N + 1, 0);
+for (int i = 0; i &lt; N; ++i) {
+    prefix[i + 1] = prefix[i] + A[i];
+}
+
+long long cnt = 0;
+for (int l = 0; l &lt; N; ++l) {
+    for (int r = l + 1; r &lt;= N; ++r) {
+        if (prefix[r] - prefix[l] &lt;= target) ++cnt;
+    }
+}</code></pre>
+        </div>
+        <p class="text-sm bg-yellow-50 border-2 border-yellow-500 p-3 win-panel"><strong>もっと調べる区間の数を減らす</strong>ことを考えます。</p>
+      </section>
+
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-5 sm:p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">2. 尺取り法</h2>
+        <div class="bg-blue-50 border-2 border-blue-400 p-4 win-panel mb-4">
+          <p class="font-bold text-blue-900 mb-2">アルゴリズムの考え方</p>
+          <ol class="list-decimal ml-5 text-sm space-y-1">
+            <li><code>sum</code> を「現在の区間 <code>[left, right)</code> の総和」として管理する。</li>
+            <li><code>sum + A[right] &lt;= target</code> である限り、右端を伸ばす。</li>
+            <li>現在の <code>left</code> で作れる有効な区間は <code>right - left</code> 個なので、答えに加える。</li>
+            <li>次の左端に向けて <code>A[left]</code> を総和から引く。</li>
+          </ol>
+        </div>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">2.1 実際の動き</h3>
+        <p class="text-sm mb-3">各 <code>left</code> で、条件を満たす限り <code>right</code> を進めます。表の「追加できない要素」は、右端をそれ以上進められない理由です。</p>
+        <div class="overflow-x-auto mb-4">
+          <table class="small-table min-w-full text-xs">
+            <thead><tr><th>left</th><th>最後の区間 [left, right)</th><th>次に追加する要素</th><th>加算する数</th><th>累計</th></tr></thead>
+            <tbody>
+              <tr><td>0</td><td><code>[0, 4)</code> = {0, 1, 2, 3}<br />sum = 6</td><td>4 を足すと 10。7 を超える</td><td>4 − 0 = 4</td><td>4</td></tr>
+              <tr><td>1</td><td><code>[1, 4)</code> = {1, 2, 3}<br />sum = 6</td><td>4 を足すと 10。7 を超える</td><td>4 − 1 = 3</td><td>7</td></tr>
+              <tr><td>2</td><td><code>[2, 4)</code> = {2, 3}<br />sum = 5</td><td>4 を足すと 9。7 を超える</td><td>4 − 2 = 2</td><td>9</td></tr>
+              <tr><td>3</td><td><code>[3, 5)</code> = {3, 4}<br />sum = 7</td><td>5 を足すと 12。7 を超える</td><td>5 − 3 = 2</td><td>11</td></tr>
+              <tr><td>4</td><td><code>[4, 5)</code> = {4}<br />sum = 4</td><td>5 を足すと 9。7 を超える</td><td>5 − 4 = 1</td><td>12</td></tr>
+              <tr><td>5</td><td><code>[5, 6)</code> = {5}<br />sum = 5</td><td>配列の末尾に到達</td><td>6 − 5 = 1</td><td><strong>13</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-sm mb-3">例えば <code>left = 1</code> のとき、有効な区間は <code>[1, 2)</code>、<code>[1, 3)</code>、<code>[1, 4)</code> の3つです。右端が <code>right = 4</code> なので、区間の個数は <code>right - left = 4 - 1 = 3</code> と分かります。</p>
+        <p class="text-sm mb-3">このようにして、各 <code>left</code> について条件を満たす区間をまとめて数えます。合計は <strong>13 個</strong>です。</p>
+
+
+        <p class="text-sm mb-3">元の文章では「配列の範囲を超える <strong>or</strong> 右端を増やしても条件を満たす」と書かれていましたが、実装では <code>right &lt; N</code> <strong>かつ</strong> <code>sum + A[right] &lt;= target</code> の両方を満たす必要があります。配列の範囲外を参照しないことにも注意してください。</p>
+        <p class="text-sm mb-3">また、<code>left == right</code> は区間が空で、左端の要素をまだ総和に加えていない状態です。そのときは引き算をせず、<code>right</code> を1つ進めて次の位置に合わせます。</p>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">2.2 C++で実装する</h3>
+        <div class="code-container mb-3">
+          <button class="copy-btn bg-blue-600 text-white text-xs px-2 py-1 win-panel" onclick="copyCode(this)">コピー</button>
+          <pre><code class="language-cpp">#include &lt;bits/stdc++.h&gt;
+using namespace std;
+
+int main() {
+    vector&lt;int&gt; A = {0, 1, 2, 3, 4, 5};
+    int N = A.size();
+    int target = 7;
+
+    long long cnt = 0;
+    long long sum = 0;
+    int right = 0;
+
+    for (int left = 0; left &lt; N; ++left) {
+        // 右端を伸ばせるだけ伸ばす
+        while (right &lt; N &amp;&amp; sum + A[right] &lt;= target) {
+            sum += A[right];
+            ++right;
+        }
+
+        // [left, right) のうち条件を満たす区間は right - left 個
+        cnt += right - left;
+
+        // 次の left に備える
+        if (left == right) {
+            ++right; // 空区間なら、right を左端より先に進める
+        } else {
+            sum -= A[left];
+        }
+    }
+
+    cout &lt;&lt; cnt &lt;&lt; endl; // 13
+}</code></pre>
+        </div>
+        <div class="bg-green-50 border-2 border-green-600 p-3 win-panel text-sm">
+          <strong>計算量は O(N)。</strong> <code>left</code> は最大 N 回進みます。重要なのは、<code>right</code> も配列の先頭から末尾までしか進まず、途中で左に戻らないことです。各要素の追加・削除は定数回なので、全体でも線形時間になります。
+        </div>
+        <br>
+        <p>進み方に関する参考画像。この場合は、総和が6以下で進めている</p>
+        <img src = "https://cdn-ak.f.st-hatena.com/images/fotolife/x/xkumiyu/20180527/20180527163851.png" width = "" alt = "イメージ">
+      </section>
+
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-5 sm:p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">3. 尺取り法が使える条件</h2>
+        <p class="text-sm mb-3">尺取り法は、どんな条件に対しても使えるわけではありません。端点を動かしたときに、条件を満たすかどうかが都合よく変化する必要があります。よく使う形を2つ見てみましょう。</p>
+        <div class="bg-blue-50 border-2 border-blue-400 p-3 win-panel mb-4">
+          <p class="font-bold text-blue-900 mb-1">パターン A：条件を満たす区間の部分区間も、条件を満たす</p>
+          <p class="text-sm">例：「総和が K 以下」「同じ値を重複して含まない」「狭義単調増加」</p>
+        </div>
+        <div class="bg-purple-50 border-2 border-purple-400 p-3 win-panel mb-4">
+          <p class="font-bold text-purple-900 mb-1">パターン B：条件を満たす区間を拡張しても、条件を満たす</p>
+          <p class="text-sm">例：「総和が K 以上」（要素がすべて非負の場合）</p>
+        </div>
+        <p class="text-sm mb-4">この2つは区別して考えてください。どちらも区間の性質に単調性がある例ですが、どちらの形を使うかは、問題で与えられた条件によって変わります。</p>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">3.1 パターン A：条件を満たす区間の部分区間も満たす</h3>
+        <p class="text-sm mb-2">今回の「総和が 7 以下」という条件で、配列の要素がすべて 0 以上だとします。ある区間の総和が 7 以下なら、その区間から要素を取り除いても総和は増えません。したがって、部分区間の総和も 7 以下です。</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <div class="bg-green-50 border-2 border-green-500 p-3 win-panel text-sm">
+            <p class="font-bold text-green-800 mb-1">○ 条件を満たす</p>
+            <p class="font-mono">[1, 2, 3] → sum = 6</p>
+            <p class="mt-1">部分区間 [1, 2] の総和は 3。こちらも 7 以下です。</p>
+          </div>
+          <div class="bg-red-50 border-2 border-red-500 p-3 win-panel text-sm">
+            <p class="font-bold text-red-800 mb-1">× 負数があると崩れる</p>
+            <p class="font-mono">[1, 2, 3, 4, 5, -15]</p>
+            <p class="mt-1">全体の総和は 0 ですが、部分区間 [1, 2, 3, 4, 5] の総和は 15。全体が条件を満たしても、部分区間が条件を満たすとは限りません。</p>
+          </div>
+        </div>
+        <p class="text-sm mb-4">このパターンでは、左端を固定すると「右端がある場所までは条件を満たすが、そこから先は満たさない」という境界ができます。さらに <code>left</code> を右に動かすと、条件を満たす右端の最大値は後戻りしません。この性質を使って <code>right</code> を使い回せます。</p>
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">3.2 パターン B：条件を満たす区間を拡張しても満たす</h3>
+        <p class="text-sm mb-2">今度は「総和が 5 以上」という条件を考えます。要素がすべて 0 以上なら、総和が 5 以上の区間に要素を追加しても、総和は減りません。したがって、拡張後も総和は 5 以上です。</p>
+        <div class="bg-gray-50 border-2 border-gray-400 p-3 win-panel mb-3">
+          <p class="font-mono text-sm">[1, 2, 3] の総和は 6 ≥ 5</p>
+          <p class="font-mono text-sm mt-1">右側に 4 を追加 → [1, 2, 3, 4] の総和は 10 ≥ 5</p>
+          <p class="text-xs text-gray-600 mt-2">このような条件は、例えば「総和が K 以上となる区間の最小の長さ」を探すときに使えます。</p>
+        </div>
+        <div class="code-container mb-3">
+          <p class="text-xs font-bold">参考：総和が target 以上となる最短区間の長さ（要素が非負の場合）</p>
+          <button class="copy-btn bg-blue-600 text-white text-xs px-2 py-1 win-panel" onclick="copyCode(this)">コピー</button>
+          <pre><code class="language-cpp">long long sum = 0;
+int right = 0;
+int ans = N + 1; // 条件を満たす区間がない場合の番兵値
+
+for (int left = 0; left &lt; N; ++left) {
+    while (right &lt; N &amp;&amp; sum &lt; target) {
+        sum += A[right];
+        ++right;
+    }
+    if (sum &gt;= target) {
+        ans = min(ans, right - left);
+    }
+    if (left == right) {
+        ++right;
+    } else {
+        sum -= A[left];
+    }
+}
+
+if (ans == N + 1) cout &lt;&lt; -1 &lt;&lt; endl;
+else cout &lt;&lt; ans &lt;&lt; endl;</code></pre>
+        </div>
+        <p class="text-xs text-gray-600">※ このコードは「総和が target 以上」を扱う別パターンの例です。今回の数え上げコードと条件式を混同しないようにしましょう。なお、実際の問題では target の範囲や空区間の扱いなど、制約に応じた確認が必要です。</p>
+
+        <h3 class="font-bold text-blue-800 mt-5 mb-2 border-b-2 border-gray-400 pb-1">3.3 二分探索法との関係</h3>
+        <p class="text-sm">左端を固定したとき、条件を満たす右端がある境界を持つ点は、二分探索法と似ています。二分探索法では各左端について境界を探すため、全体で <span class="font-mono">O(N log N)</span> になることがあります。一方、尺取り法では左端を進めても右端を戻さずに済む場合があり、全体を <span class="font-mono">O(N)</span> にできます。ただし、条件の単調性や区間の性質が必要であり、何でも尺取り法に置き換えられるわけではありません。</p>
+      </section>
+
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-5 sm:p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">4. サンプルコード</h2>
+        <p class="text-sm mb-2"><a href="https://qiita.com/drken/items/ecd1a472d3a0e7db8dce#4-%E5%95%8F%E9%A1%8C%E4%BE%8B" target="_blank" rel="noopener noreferrer" class="text-blue-700 underline font-bold">しゃくとり法 (尺取り法) の解説と、それを用いる問題のまとめ - Qiita ➜</a></p>
+        <p class="text-sm">問題3〜5の問題設定と、実際のコードの書き方を見てみてください</p>
+      </section>
+
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-5 sm:p-6 text-left">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">5. まとめ</h2>
+        <ul class="list-disc ml-5 text-sm space-y-2">
+          <li>尺取り法は、連続区間の左端と右端を動かし、区間を効率よく調べる手法。</li>
+          <li>今回の「総和が K 以下」の数え上げは、要素がすべて非負なら使える。</li>
+          <li>条件を満たす右端までの区間数は <code>right - left</code> でまとめて数えられる。</li>
+          <li><code>left</code> と <code>right</code> がそれぞれ高々 N 回程度しか進まないため、全体は <span class="font-mono">O(N)</span>。</li>
+          <li>負数がある場合など、条件の単調性が崩れるときは、そのまま適用できない。</li>
+        </ul>
+        <div class="bg-blue-50 border-2 border-blue-400 p-3 win-panel mt-4 text-sm">
+          <strong>最後に自分で確認：</strong><br />「なぜ <code>cnt += right - left</code> でよいのか」「なぜ <code>right</code> を毎回 <code>left</code> まで戻さなくてよいのか」を、言葉で説明できるようにしましょう。
+        </div>
+      </section>
+      <!-- 12. ばちゃこんにチャレンジ！ -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          8. ばちゃこんにチャレンジ！
+        </h2>
+        <p class="text-sm mb-4">
+            実際に問題を解いてみましょう。
+        </p>
+        <a
+          href="https://kenkoooo.com/atcoder/#/contest/show/04f9d280-755d-441f-b17d-1fcf531799d5"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-block bg-blue-600 text-white px-4 py-2 border-2 border-blue-900 shadow-[3px_3px_0_#1e3a8a] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition font-bold text-sm"
+        >
+          バチャコンを開く ➔
+        </a>
+      </section>
+
+    </main>
+
+    <footer class="text-center py-10 px-3">
+      <div class="inline-block bg-white border-2 border-gray-400 px-6 py-2 shadow-[2px_2px_0_#000] text-sm font-bold text-gray-700 win-panel">IQ C++ Autumn Workshop 2026 - Rep. Takiguchi</div>
+    </footer>
+
+    <script>
+      hljs.highlightAll();
+      function copyCode(btn) {
+        const container = btn.closest('.code-container');
+        const code = container.querySelector('code');
+        const textToCopy = code ? code.innerText : '';
+        navigator.clipboard.writeText(textToCopy).then(() => {
+          const originalText = btn.innerText;
+          btn.innerText = '完了！';
+          btn.classList.remove('bg-blue-600');
+          btn.classList.add('bg-green-600');
+          setTimeout(() => {
+            btn.innerText = originalText;
+            btn.classList.remove('bg-green-600');
+            btn.classList.add('bg-blue-600');
+          }, 1500);
+        }).catch(() => {
+          btn.innerText = 'コピー失敗';
+          setTimeout(() => { btn.innerText = 'コピー'; }, 1500);
+        });
+      }
+    </script>
+  </body>
+</html>
