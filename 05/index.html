@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>第05講：グラフ理論と UnionFind | IQ C++講習会</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
+  <style>
+    body { background-color: #c0c0c0; font-family: 'MS PGothic', 'Hiragino Kaku Gothic ProN', sans-serif; }
+    @keyframes blink { 50% { opacity: 0; } }
+    .blink { animation: blink 1s infinite; }
+    .win-panel { border: 2px solid; border-color: #ffffff #808080 #808080 #ffffff; }
+    pre { background: #fff !important; border: 2px solid #808080 !important; box-shadow: inset 0 0 5px rgba(0,0,0,.1); border-radius: 0 !important; margin: .5rem 0 !important; padding: 1rem !important; overflow-x: auto; }
+    code.hljs { background: transparent !important; font-family: Consolas, Monaco, monospace !important; font-size: .9rem !important; padding: 0 !important; color: #000; }
+    .code-container { position: relative; }
+    .copy-btn { position: absolute; right: .7rem; top: .7rem; z-index: 10; }
+    .small-table th, .small-table td { border: 1px solid #9ca3af; padding: .5rem; vertical-align: top; }
+    .small-table th { background: #e5e7eb; }
+    .graph-svg { width: 100%; max-width: 600px; height: auto; display: block; margin: auto; }
+    @media (max-width: 640px) { pre { padding: .75rem !important; } }
+  </style>
+</head>
+<body class="text-black pb-10">
+<header class="text-center py-10 px-3">
+  <div class="inline-block max-w-3xl bg-white border-4 border-gray-500 shadow-[4px_4px_0_#888] px-6 sm:px-8 py-4 text-left">
+    <h1 class="text-2xl font-bold text-blue-800 border-b-4 border-double border-blue-500 pb-2 text-center">第05講：グラフ理論と UnionFind</h1>
+    <p class="mt-3 text-sm text-center font-bold">点と線で問題を抽象化し、頂点同士のつながりを高速に管理しよう。</p>
+    <p class="mt-2 blink text-blue-700 font-bold text-center">★ グラフを理解し、連結を扱え ★</p>
+  </div>
+</header>
+<main class="max-w-4xl mx-auto px-4 space-y-10">
+
+<section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-5 sm:p-6 text-left">
+  <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">0. グラフ理論</h2>
+  <p class="text-sm mb-3">グラフ理論は、物事や事象を「点」と「点をつなぐ線」に置き換えて考察する分野です。現実の複雑な関係を、頂点と辺からなる構造として捉えます。</p>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+    <div class="bg-blue-50 border-2 border-blue-400 p-3 win-panel">
+      <h3 class="font-bold text-blue-900 mb-2">駅と路線</h3>
+      <svg viewBox="0 0 320 110" class="graph-svg" role="img" aria-label="駅を頂点、路線を辺で表した図">
+        <g stroke="#2563eb" stroke-width="4"><line x1="45" y1="55" x2="130" y2="25"/><line x1="130" y1="25" x2="220" y2="55"/><line x1="45" y1="55" x2="130" y2="85"/><line x1="130" y1="85" x2="220" y2="55"/><line x1="220" y1="55" x2="285" y2="25"/></g>
+        <g fill="#dbeafe" stroke="#1d4ed8" stroke-width="2"><circle cx="45" cy="55" r="13"/><circle cx="130" cy="25" r="13"/><circle cx="130" cy="85" r="13"/><circle cx="220" cy="55" r="13"/><circle cx="285" cy="25" r="13"/></g>
+        <g fill="#1e3a8a" font-size="11" text-anchor="middle"><text x="45" y="58">A</text><text x="130" y="28">B</text><text x="130" y="88">C</text><text x="220" y="58">D</text><text x="285" y="28">E</text></g>
+      </svg>
+      <p class="text-xs">駅を頂点、駅間の路線を辺として表します。</p>
+    </div>
+    <div class="bg-green-50 border-2 border-green-500 p-3 win-panel">
+      <h3 class="font-bold text-green-900 mb-2">四色問題</h3>
+      <svg viewBox="0 0 320 110" class="graph-svg" role="img" aria-label="隣接する頂点が異なる色になるよう彩色したグラフ">
+        <g stroke="#374151" stroke-width="3"><line x1="60" y1="55" x2="135" y2="20"/><line x1="60" y1="55" x2="135" y2="90"/><line x1="135" y1="20" x2="215" y2="55"/><line x1="135" y1="90" x2="215" y2="55"/><line x1="135" y1="20" x2="135" y2="90"/><line x1="215" y1="55" x2="275" y2="20"/></g>
+        <g stroke="#374151" stroke-width="2"><circle cx="60" cy="55" r="15" fill="#fca5a5"/><circle cx="135" cy="20" r="15" fill="#93c5fd"/><circle cx="135" cy="90" r="15" fill="#86efac"/><circle cx="215" cy="55" r="15" fill="#fde68a"/><circle cx="275" cy="20" r="15" fill="#c4b5fd"/></g>
+      </svg>
+      <p class="text-xs">都道府県を頂点、隣り合う県を辺で結ぶと、地図の彩色問題として考えられます。</p>
+    </div>
+  </div>
+  <p class="text-sm mb-2">ほかにも、一筆書きができるか、ルービックキューブをどう解くか、割りばしゲームで勝てるか、といった問題をグラフとして表現できます。状態を頂点、状態間で可能な操作を辺とみなす方法もあります。</p>
+  <div class="bg-yellow-50 border-2 border-yellow-500 p-3 win-panel text-sm"><strong>重要：</strong>問題をそのまま眺めるのではなく、何を頂点とし、何を辺とするかを考えると、グラフのアルゴリズムに持ち込めることがあります。</div>
+</section>
+
+<section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-5 sm:p-6 text-left">
+  <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">1. グラフの用語</h2>
+  <p class="text-sm mb-3">以下は AtCoder の用語解説を参考に、初学者向けにかみ砕いた説明です。厳密な定義や補足は<a class="text-blue-700 underline font-bold" href="https://info.atcoder.jp/entry/algorithm_lectures/graph_terms" target="_blank" rel="noopener noreferrer">AtCoder の解説 ➜</a>も確認してください。</p>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div class="border-2 border-gray-300 p-3"><h3 class="font-bold text-blue-900">頂点・ノード</h3><p class="text-sm">グラフを構成する「点」です。</p></div>
+    <div class="border-2 border-gray-300 p-3"><h3 class="font-bold text-blue-900">辺・エッジ</h3><p class="text-sm">頂点と頂点をつなぐ「線」です。</p></div>
+    <div class="border-2 border-gray-300 p-3"><h3 class="font-bold text-blue-900">次数</h3><p class="text-sm">無向グラフでは、その頂点につながっている辺の本数です。</p></div>
+    <div class="border-2 border-gray-300 p-3"><h3 class="font-bold text-blue-900">パス</h3><p class="text-sm">辺をたどって頂点から頂点へ移動する道筋です。例：生田 → 向ヶ丘遊園 → 登戸。</p></div>
+  </div>
+  <h3 class="font-bold text-blue-800 mt-5 mb-2 border-b-2 border-gray-400 pb-1">1.1 無向辺と有向辺</h3>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div class="bg-blue-50 border-2 border-blue-400 p-3 win-panel">
+      <p class="font-bold text-blue-900 mb-2">無向辺：両方向に移動できる</p>
+      <svg viewBox="0 0 300 80" class="graph-svg" role="img" aria-label="AとBを結ぶ無向辺"><circle cx="45" cy="40" r="17" fill="#dbeafe" stroke="#1d4ed8" stroke-width="2"/><circle cx="255" cy="40" r="17" fill="#dbeafe" stroke="#1d4ed8" stroke-width="2"/><line x1="63" y1="40" x2="237" y2="40" stroke="#1d4ed8" stroke-width="3"/><g fill="#1e3a8a" text-anchor="middle" font-weight="bold"><text x="45" y="44">A</text><text x="255" y="44">B</text></g></svg>
+      <p class="text-sm">A から B、B から A のどちらにも進めます。</p>
+    </div>
+    <div class="bg-purple-50 border-2 border-purple-400 p-3 win-panel">
+      <p class="font-bold text-purple-900 mb-2">有向辺：向きがある</p>
+      <svg viewBox="0 0 300 80" class="graph-svg" role="img" aria-label="AからBへの有向辺"><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="#7c3aed"/></marker></defs><circle cx="45" cy="40" r="17" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><circle cx="255" cy="40" r="17" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><line x1="63" y1="40" x2="237" y2="40" stroke="#7c3aed" stroke-width="3" marker-end="url(#arrow)"/><g fill="#5b21b6" text-anchor="middle" font-weight="bold"><text x="45" y="44">A</text><text x="255" y="44">B</text></g></svg>
+      <p class="text-sm">A から B には進めますが、辺を逆向きにたどることはできません。</p>
+    </div>
+  </div>
+  <p class="text-sm mt-3 mb-4">無向辺だけからなるものを<strong>無向グラフ</strong>、有向辺だけからなるものを<strong>有向グラフ</strong>と呼びます。</p>
+  <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">1.2 そのほかの用語</h3>
+  <div class="overflow-x-auto">
+    <table class="small-table min-w-full text-sm">
+      <thead><tr><th>用語</th><th>意味</th><th>イメージ</th></tr></thead>
+      <tbody>
+        <tr><td><strong>多重辺</strong></td><td>同じ2頂点を結ぶ辺が複数あること。</td><td>A と B の間に線が2本以上</td></tr>
+        <tr><td><strong>自己ループ</strong></td><td>ある頂点から同じ頂点へ戻る辺。</td><td>A → A</td></tr>
+        <tr><td><strong>単純グラフ</strong></td><td>多重辺も自己ループもないグラフ。</td><td>各頂点間に同じ辺は1本以下</td></tr>
+        <tr><td><strong>サイクル・閉路</strong></td><td>辺をたどって出発した頂点に戻れる一周。</td><td>A → B → C → A</td></tr>
+        <tr><td><strong>木</strong></td><td>連結で、閉路を持たない無向グラフ。</td><td>枝分かれはあるが一周できない</td></tr>
+        <tr><td><strong>二部グラフ</strong></td><td>頂点を2グループに分け、同じグループ内には辺がないグラフ。</td><td>左グループと右グループだけが接続</td></tr>
+        <tr><td><strong>完全グラフ</strong></td><td>異なる任意の2頂点が辺で結ばれているグラフ。</td><td>すべての頂点ペアを接続</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+    <div class="bg-gray-50 border-2 border-gray-300 p-3 win-panel">
+      <p class="font-bold mb-2">同じグラフ、違う配置</p>
+      <svg viewBox="0 0 320 115" class="graph-svg" role="img" aria-label="頂点の配置は違うが接続関係が同じ2つのグラフ">
+        <g stroke="#6b7280" stroke-width="2"><line x1="35" y1="30" x2="80" y2="75"/><line x1="80" y1="75" x2="125" y2="30"/><line x1="35" y1="30" x2="125" y2="30"/><line x1="195" y1="25" x2="260" y2="45"/><line x1="260" y1="45" x2="220" y2="85"/><line x1="195" y1="25" x2="220" y2="85"/></g>
+        <g fill="#dbeafe" stroke="#1d4ed8" stroke-width="2"><circle cx="35" cy="30" r="10"/><circle cx="80" cy="75" r="10"/><circle cx="125" cy="30" r="10"/><circle cx="195" cy="25" r="10"/><circle cx="260" cy="45" r="10"/><circle cx="220" cy="85" r="10"/></g>
+      </svg>
+      <p class="text-xs">頂点の位置や線の曲がり方ではなく、どの頂点同士がつながっているかが重要です。</p>
+    </div>
+    <div class="bg-yellow-50 border-2 border-yellow-500 p-3 win-panel">
+      <p class="font-bold text-yellow-900 mb-2">完全グラフの注意</p>
+      <p class="text-sm">完全グラフでは、すべての異なる頂点ペアが直接つながっています。単に多角形の辺だけを描いた図ではなく、対角線も含めた接続です。</p>
+      <svg viewBox="0 0 240 120" class="graph-svg" role="img" aria-label="4頂点の完全グラフ K4"><g stroke="#b45309" stroke-width="2"><line x1="50" y1="25" x2="190" y2="25"/><line x1="50" y1="25" x2="50" y2="95"/><line x1="50" y1="25" x2="190" y2="95"/><line x1="190" y1="25" x2="190" y2="95"/><line x1="190" y1="25" x2="50" y2="95"/><line x1="50" y1="95" x2="190" y2="95"/></g><g fill="#fde68a" stroke="#92400e" stroke-width="2"><circle cx="50" cy="25" r="8"/><circle cx="190" cy="25" r="8"/><circle cx="50" cy="95" r="8"/><circle cx="190" cy="95" r="8"/></g></svg>
+    </div>
+  </div>
+</section>
+
+<section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-5 sm:p-6 text-left">
+  <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">2. 木の用語</h2>
+  <p class="text-sm mb-3">ここでいう「木」は街路樹ではなく、グラフ理論の<strong>木構造</strong>です。木構造は、ディレクトリや家系図などにも現れます。</p>
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+    <div class="bg-green-50 border-2 border-green-500 p-3 win-panel text-center">
+      <svg viewBox="0 0 150 90" class="graph-svg" role="img" aria-label="枝分かれした木構造"><g stroke="#15803d" stroke-width="2"><line x1="75" y1="15" x2="40" y2="48"/><line x1="75" y1="15" x2="110" y2="48"/><line x1="40" y1="48" x2="20" y2="78"/><line x1="40" y1="48" x2="60" y2="78"/></g><g fill="#bbf7d0" stroke="#15803d" stroke-width="2"><circle cx="75" cy="15" r="8"/><circle cx="40" cy="48" r="8"/><circle cx="110" cy="48" r="8"/><circle cx="20" cy="78" r="7"/><circle cx="60" cy="78" r="7"/></g></svg>
+      <p class="font-bold text-sm">木構造</p>
+    </div>
+    <div class="bg-blue-50 border-2 border-blue-400 p-3 win-panel text-center">
+      <p class="font-bold text-blue-900 mb-2">ディレクトリ</p>
+      <div class="font-mono text-xs text-left inline-block">root/<br>├─ src/<br>│　└─ main.cpp<br>└─ data/</div>
+    </div>
+    <div class="bg-purple-50 border-2 border-purple-400 p-3 win-panel text-center">
+      <p class="font-bold text-purple-900 mb-2">家系図の例</p>
+      <svg viewBox="0 0 150 90" class="graph-svg" role="img" aria-label="家康を上に、秀忠と別の子を下に置いた簡略家系図"><g stroke="#7c3aed" stroke-width="2"><line x1="75" y1="22" x2="40" y2="62"/><line x1="75" y1="22" x2="110" y2="62"/></g><g fill="#ede9fe" stroke="#7c3aed" stroke-width="2"><rect x="50" y="8" width="50" height="25"/><rect x="15" y="58" width="50" height="25"/><rect x="85" y="58" width="50" height="25"/></g><g fill="#5b21b6" font-size="10" text-anchor="middle"><text x="75" y="24">家康</text><text x="40" y="74">秀忠</text><text x="110" y="74">家光</text></g></svg>
+    </div>
+  </div>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div class="border-2 border-gray-300 p-3"><h3 class="font-bold text-blue-900">根（root）</h3><p class="text-sm">木の中で基準として選ぶ頂点です。根の選び方によって親子関係が変わります。</p></div>
+    <div class="border-2 border-gray-300 p-3"><h3 class="font-bold text-blue-900">親・子</h3><p class="text-sm">根からたどったとき、ある頂点から次の頂点へ進む関係を親・子と呼びます。</p></div>
+    <div class="border-2 border-gray-300 p-3"><h3 class="font-bold text-blue-900">葉</h3><p class="text-sm">子を持たない頂点です。根以外の頂点なら、木の葉は次数1になります。</p></div>
+    <div class="border-2 border-gray-300 p-3"><h3 class="font-bold text-blue-900">深さ</h3><p class="text-sm">根からその頂点までに通る辺の本数です。</p></div>
+  </div>
+  <div class="bg-blue-50 border-2 border-blue-400 p-3 win-panel mt-4">
+    <p class="font-bold text-blue-900 mb-2">深さの例</p>
+    <svg viewBox="0 0 500 180" class="graph-svg" role="img" aria-label="Aを根とし、E、F、G、Hが深さ2になる木構造">
+      <g stroke="#64748b" stroke-width="2"><line x1="250" y1="25" x2="150" y2="75"/><line x1="250" y1="25" x2="350" y2="75"/><line x1="150" y1="75" x2="95" y2="130"/><line x1="150" y1="75" x2="205" y2="130"/><line x1="350" y1="75" x2="295" y2="130"/><line x1="350" y1="75" x2="405" y2="130"/></g>
+      <g fill="#dbeafe" stroke="#1d4ed8" stroke-width="2"><circle cx="250" cy="25" r="17"/><circle cx="150" cy="75" r="17"/><circle cx="350" cy="75" r="17"/></g>
+      <g fill="#bbf7d0" stroke="#15803d" stroke-width="2"><circle cx="95" cy="130" r="17"/><circle cx="205" cy="130" r="17"/><circle cx="295" cy="130" r="17"/><circle cx="405" cy="130" r="17"/></g>
+      <g font-size="13" fill="#1e3a8a" text-anchor="middle" font-weight="bold"><text x="250" y="30">A</text><text x="150" y="80">B</text><text x="350" y="80">C</text></g><g font-size="13" fill="#166534" text-anchor="middle" font-weight="bold"><text x="95" y="135">E</text><text x="205" y="135">F</text><text x="295" y="135">G</text><text x="405" y="135">H</text></g>
+      <text x="270" y="18" font-size="11" fill="#1e3a8a">深さ 0</text><text x="375" y="68" font-size="11" fill="#1e3a8a">深さ 1</text><text x="420" y="160" font-size="11" fill="#166534">深さ 2</text>
+    </svg>
+    <p class="text-sm">この図では、A の深さは 0、B と C は 1、E・F・G・H は 2 です。</p>
+  </div>
+  <h3 class="font-bold text-blue-800 mt-5 mb-2 border-b-2 border-gray-400 pb-1">2.1 二分木と完全二分木</h3>
+  <p class="text-sm mb-3"><strong>二分木</strong>は、各頂点が持つ子の数が高々2個の木です。Yes / No の二択で分岐する質問や、トーナメント表、機械学習の決定木などに登場します。</p>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div class="border-2 border-gray-300 p-3 win-panel">
+      <p class="font-bold mb-2">二分木</p>
+      <svg viewBox="0 0 250 125" class="graph-svg" role="img" aria-label="各頂点が子を2個以下持つ二分木"><g stroke="#2563eb" stroke-width="2"><line x1="125" y1="20" x2="75" y2="60"/><line x1="125" y1="20" x2="175" y2="60"/><line x1="75" y1="60" x2="45" y2="100"/><line x1="75" y1="60" x2="100" y2="100"/></g><g fill="#dbeafe" stroke="#1d4ed8" stroke-width="2"><circle cx="125" cy="20" r="10"/><circle cx="75" cy="60" r="10"/><circle cx="175" cy="60" r="10"/><circle cx="45" cy="100" r="9"/><circle cx="100" cy="100" r="9"/></g></svg>
+    </div>
+    <div class="border-2 border-gray-300 p-3 win-panel">
+      <p class="font-bold mb-2">完全二分木（この資料での説明）</p>
+      <svg viewBox="0 0 250 125" class="graph-svg" role="img" aria-label="葉の深さが同じ二分木"><g stroke="#15803d" stroke-width="2"><line x1="125" y1="15" x2="65" y2="50"/><line x1="125" y1="15" x2="185" y2="50"/><line x1="65" y1="50" x2="35" y2="90"/><line x1="65" y1="50" x2="95" y2="90"/><line x1="185" y1="50" x2="155" y2="90"/><line x1="185" y1="50" x2="215" y2="90"/></g><g fill="#bbf7d0" stroke="#15803d" stroke-width="2"><circle cx="125" cy="15" r="9"/><circle cx="65" cy="50" r="9"/><circle cx="185" cy="50" r="9"/><circle cx="35" cy="90" r="9"/><circle cx="95" cy="90" r="9"/><circle cx="155" cy="90" r="9"/><circle cx="215" cy="90" r="9"/></g></svg>
+      <p class="text-xs">原文では「葉の深さが全部同じ」と説明しています。</p>
+    </div>
+  </div>
+</section>
+
+<section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-5 sm:p-6 text-left">
+  <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">3. AtCoder Library（ACL）</h2>
+  <p class="text-sm mb-3">AtCoder Library（ACL）は、AtCoder 公式が提供する C++ 用のアルゴリズム・データ構造ライブラリです。自分で毎回実装しなくても、定番の機能を呼び出せます。</p>
+  <div class="bg-yellow-50 border-2 border-yellow-500 p-3 win-panel text-sm mb-4"><strong>通常の利用：</strong>環境を整えたうえで <code>#include &lt;atcoder/all&gt;</code> または必要な機能のヘッダーを読み込みます。</div>
+  <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">3.1 インストール</h3>
+  <p class="text-sm mb-3">ACL をまだ導入していない場合は、次の動画を参考に環境構築してください。Windows + WSL2 向けの手順です。Mac では手順が異なる場合があります。</p>
+  <a href="https://www.youtube.com/watch?v=uhnASau7fB4&t=609s" target="_blank" rel="noopener noreferrer" class="inline-block bg-blue-600 text-white px-4 py-2 border-2 border-blue-900 shadow-[3px_3px_0_#1e3a8a] font-bold text-sm mb-4">環境構築の動画を開く ➜</a>
+  <p class="text-sm mb-2">環境構築がどうしても難しい場合は、以下の UnionFind 実装を C++ ファイルに貼り付けて利用する方法もあります。ただし、これは ACL の <code>dsu</code> の機能を抜粋した代替実装です。</p>
+  <details class="border-2 border-gray-400 p-3 win-panel">
+    <summary class="font-bold text-blue-900 cursor-pointer">代替実装を表示（クリック）</summary>
+    <div class="code-container mt-3">
+      <button class="copy-btn bg-blue-600 text-white text-xs px-2 py-1 win-panel" onclick="copyCode(this)">コピー</button>
+      <pre><code class="language-cpp">#include &lt;bits/stdc++.h&gt;
+using namespace std;
+
+struct dsu {
+    vector&lt;int&gt; parent_or_size;
+    dsu(int n) : parent_or_size(n, -1) {}
+
+    int leader(int a) {
+        if (parent_or_size[a] &lt; 0) return a;
+        return parent_or_size[a] = leader(parent_or_size[a]);
+    }
+
+    bool same(int a, int b) {
+        return leader(a) == leader(b);
+    }
+
+    int size(int a) {
+        return -parent_or_size[leader(a)];
+    }
+
+    int merge(int a, int b) {
+        int x = leader(a), y = leader(b);
+        if (x == y) return x;
+        if (-parent_or_size[x] &lt; -parent_or_size[y]) swap(x, y);
+        parent_or_size[x] += parent_or_size[y];
+        parent_or_size[y] = x;
+        return x;
+    }
+};</code></pre>
+    </div>
+  </details>
+</section>
+
+<section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-5 sm:p-6 text-left">
+  <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">4. UnionFind</h2>
+  <p class="text-sm mb-3"><strong>UnionFind</strong>（素集合データ構造、Disjoint Set Union / DSU）は、要素を互いに重ならないグループに分け、グループの統合や、同じグループかどうかの判定を効率よく行うデータ構造です。</p>
+  <div class="bg-blue-50 border-2 border-blue-400 p-3 win-panel mb-4">
+    <p class="font-bold text-blue-900 mb-2">イメージ：グループを統合する</p>
+    <svg viewBox="0 0 520 145" class="graph-svg" role="img" aria-label="0と1、2が別々のグループから0と1を統合し、2は別のままの図">
+      <g fill="#dbeafe" stroke="#1d4ed8" stroke-width="2"><circle cx="55" cy="45" r="17"/><circle cx="110" cy="45" r="17"/><circle cx="165" cy="45" r="17"/></g><g fill="#1e3a8a" text-anchor="middle" font-size="13"><text x="55" y="49">0</text><text x="110" y="49">1</text><text x="165" y="49">2</text></g>
+      <text x="110" y="83" fill="#1e3a8a" text-anchor="middle" font-size="12">最初は別々</text><path d="M220 45 L275 45 M266 36 L275 45 L266 54" stroke="#374151" stroke-width="3" fill="none"/>
+      <g fill="#bbf7d0" stroke="#15803d" stroke-width="2"><circle cx="330" cy="45" r="17"/><circle cx="385" cy="45" r="17"/></g><circle cx="455" cy="45" r="17" fill="#dbeafe" stroke="#1d4ed8" stroke-width="2"/><g fill="#166534" text-anchor="middle" font-size="13"><text x="330" y="49">0</text><text x="385" y="49">1</text></g><text x="455" y="49" fill="#1e3a8a" text-anchor="middle" font-size="13">2</text><line x1="347" y1="45" x2="368" y2="45" stroke="#15803d" stroke-width="3"/><text x="380" y="83" fill="#166534" text-anchor="middle" font-size="12">0 と 1 を統合</text><text x="455" y="83" fill="#1e3a8a" text-anchor="middle" font-size="12">2 は別</text>
+      <text x="260" y="125" fill="#374151" text-anchor="middle" font-size="12">※ 図はグループの概念を示すもので、内部の親ポインタ構造そのものではありません。</text>
+    </svg>
+  </div>
+  <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">4.1 基本操作</h3>
+  <div class="overflow-x-auto">
+    <table class="small-table min-w-full text-sm">
+      <thead><tr><th>操作</th><th>意味</th><th>例</th></tr></thead>
+      <tbody>
+        <tr><td><code>dsu uf(N)</code></td><td>N 個の要素を、それぞれ別のグループとして初期化</td><td>最初は N グループ</td></tr>
+        <tr><td><code>uf.merge(a, b)</code></td><td>a と b のグループを統合する</td><td>辺 (a, b) を追加するイメージ</td></tr>
+        <tr><td><code>uf.same(a, b)</code></td><td>同じグループかを <code>true / false</code> で返す</td><td>連結しているか判定</td></tr>
+        <tr><td><code>uf.size(a)</code></td><td>a が属するグループの要素数</td><td>グループに 3 要素あるなら 3</td></tr>
+        <tr><td><code>uf.leader(a)</code></td><td>a のグループの代表頂点を返す</td><td>同じグループなら同じ代表</td></tr>
+        <tr><td><code>uf.groups()</code></td><td>全グループを二次元配列として返す</td><td><code>{{0, 2, 4, 7}, {3, 5}, {6}}</code> など</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="text-sm mt-3 mb-3">ACL では次のヘッダーを使います。<code>atcoder/all</code> を読み込んでいるなら、個別に追加する必要はありません。</p>
+  <div class="code-container mb-3"><button class="copy-btn bg-blue-600 text-white text-xs px-2 py-1 win-panel" onclick="copyCode(this)">コピー</button><pre><code class="language-cpp">#include &lt;atcoder/dsu&gt;</code></pre></div>
+  <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">4.2 使用例</h3>
+  <div class="code-container mb-3">
+    <button class="copy-btn bg-blue-600 text-white text-xs px-2 py-1 win-panel" onclick="copyCode(this)">コピー</button>
+    <pre><code class="language-cpp">#include &lt;bits/stdc++.h&gt;
+#include &lt;atcoder/dsu&gt;
+using namespace std;
+using namespace atcoder;
+
+int main() {
+    int node_num = 3; // 頂点数
+    int a = 0, b = 1, c = 2;
+
+    dsu uf(node_num); // 3頂点、辺はまだない
+
+    uf.merge(a, b); // 0 と 1 を同じグループにする
+
+    cout &lt;&lt; uf.same(a, b) &lt;&lt; endl; // 1 (true)
+    cout &lt;&lt; uf.same(a, c) &lt;&lt; endl; // 0 (false)
+    cout &lt;&lt; uf.size(a) &lt;&lt; endl;    // 2
+    cout &lt;&lt; uf.leader(a) &lt;&lt; endl;  // 代表頂点（0とは限らない）
+
+    return 0;
+}</code></pre>
+  </div>
+  <p class="text-sm mb-3">多くの競技プログラミング環境では、UnionFind の各操作は償却計算量でほぼ <code>O(1)</code> とみなせるほど高速です。厳密には、経路圧縮と union by size により、操作あたり <code>O(α(N))</code> です。</p>
+  <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">4.3 <code>uf.groups()</code> の例</h3>
+  <p class="text-sm mb-2">例えば、グループが次のように分かれているとします。</p>
+  <svg viewBox="0 0 500 120" class="graph-svg mb-3" role="img" aria-label="0、2、4、7が一つのグループ、3と5が別グループ、6が単独の図">
+    <rect x="10" y="10" width="250" height="95" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/><rect x="275" y="10" width="110" height="95" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><rect x="400" y="10" width="90" height="95" rx="8" fill="#f3e8ff" stroke="#9333ea" stroke-width="2"/>
+    <g fill="#1e3a8a" font-size="14" text-anchor="middle"><circle cx="40" cy="42" r="13" fill="#bfdbfe" stroke="#1d4ed8"/><text x="40" y="47">0</text><circle cx="100" cy="42" r="13" fill="#bfdbfe" stroke="#1d4ed8"/><text x="100" y="47">2</text><circle cx="160" cy="42" r="13" fill="#bfdbfe" stroke="#1d4ed8"/><text x="160" y="47">4</text><circle cx="220" cy="42" r="13" fill="#bfdbfe" stroke="#1d4ed8"/><text x="220" y="47">7</text><text x="135" y="82" font-size="12">グループ1</text></g>
+    <g fill="#166534" font-size="14" text-anchor="middle"><circle cx="305" cy="42" r="13" fill="#bbf7d0" stroke="#15803d"/><text x="305" y="47">3</text><circle cx="355" cy="42" r="13" fill="#bbf7d0" stroke="#15803d"/><text x="355" y="47">5</text><text x="330" y="82" font-size="12">グループ2</text></g>
+    <g fill="#6b21a8" font-size="14" text-anchor="middle"><circle cx="445" cy="42" r="13" fill="#e9d5ff" stroke="#7e22ce"/><text x="445" y="47">6</text><text x="445" y="82" font-size="12">グループ3</text></g>
+  </svg>
+  <div class="code-container mb-3"><button class="copy-btn bg-blue-600 text-white text-xs px-2 py-1 win-panel" onclick="copyCode(this)">コピー</button><pre><code class="language-cpp">auto groups = uf.groups();
+// 例：{{0, 2, 4, 7}, {3, 5}, {6}}</code></pre></div>
+  <p class="text-xs text-gray-600">グループの並び順や、各グループ内の要素順に依存した処理は避けてください。代表頂点は、必ずしも最小番号とは限りません。</p>
+</section>
+
+<section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-5 sm:p-6 text-left">
+  <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">5. 例題：連結判定クエリ</h2>
+  <p class="text-sm mb-3">AtCoder Library Practice Contest の <a href="https://atcoder.jp/contests/practice2/tasks/practice2_a" target="_blank" rel="noopener noreferrer" class="text-blue-700 underline font-bold">Practice2 A - Disjoint Set Union ➜</a> を扱います。</p>
+  <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel mb-4 text-sm">
+    <p class="font-bold mb-2">問題文</p>
+    <p>N 頂点・0 辺の無向グラフに Q 個のクエリが与えられます。</p>
+    <ul class="list-disc ml-5 mt-2 space-y-1">
+      <li><code>0 u v</code>：頂点 u と頂点 v を結ぶ辺を追加する。</li>
+      <li><code>1 u v</code>：u と v が連結なら <code>1</code>、そうでなければ <code>0</code> を出力する。</li>
+    </ul>
+  </div>
+  <p class="text-sm mb-2">ここでいう「連結」とは、辺を何本かたどって一方の頂点からもう一方へ到達できることです。辺を追加するたびにグループを統合し、判定クエリでは同じグループかどうかを調べれば解けます。</p>
+  <div class="code-container mb-3">
+    <button class="copy-btn bg-blue-600 text-white text-xs px-2 py-1 win-panel" onclick="copyCode(this)">コピー</button>
+    <pre><code class="language-cpp">#include &lt;bits/stdc++.h&gt;
+#include &lt;atcoder/dsu&gt;
+using namespace std;
+using namespace atcoder;
+
+int main() {
+    int N, Q;
+    cin >> N >> Q;
+
+    dsu d(N);
+
+    for (int i = 0; i &lt; Q; i++) {
+        int t, u, v;
+        cin >> t >> u >> v;
+
+        if (t == 0) {
+            d.merge(u, v);
+        } else if (t == 1) {
+            cout &lt;&lt; d.same(u, v) &lt;&lt; endl;
+        }
+    }
+    return 0;
+}</code></pre>
+  </div>
+  <div class="bg-yellow-50 border-2 border-yellow-500 p-3 win-panel text-sm">
+    <strong>読み解きポイント：</strong>
+    <ul class="list-disc ml-5 mt-1 space-y-1">
+      <li><code>dsu d(N)</code> は、頂点 <code>0</code> から <code>N-1</code> までを別々のグループで初期化します。</li>
+      <li><code>d.merge(u, v)</code> は、u と v のグループを統合します。</li>
+      <li><code>d.same(u, v)</code> は、2頂点が同じグループに属するかを返します。C++ では <code>true</code> は 1、<code>false</code> は 0 として出力されます。</li>
+    </ul>
+  </div>
+</section>
+
+<section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-5 sm:p-6 text-left">
+  <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">6. まとめ</h2>
+  <ul class="list-disc ml-5 text-sm space-y-2">
+    <li>グラフは頂点と辺で、物事の関係や状態遷移を表現する。</li>
+    <li>辺には無向辺と有向辺があり、グラフの種類や性質を表す用語がある。</li>
+    <li>木は、連結で閉路を持たない無向グラフとして考えられる。</li>
+    <li>ACL は C++ 用のアルゴリズム・データ構造ライブラリ。</li>
+    <li>UnionFind は、グループの統合と、同じグループかどうかの判定を高速に行う。</li>
+    <li>連結判定クエリでは、辺の追加を <code>merge</code>、連結判定を <code>same</code> で処理できる。</li>
+  </ul>
+  <div class="bg-blue-50 border-2 border-blue-400 p-3 win-panel mt-4 text-sm"><strong>自分で確認：</strong>「なぜ <code>same(u, v)</code> で連結判定ができるのか」「<code>merge</code> を何度呼んでもよいのはなぜか」を、自分の言葉で説明できるようにしましょう。</div>
+</section>
+
+      <!-- 12. ばちゃこんにチャレンジ！ -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          7. ばちゃこんにチャレンジ！
+        </h2>
+        <p class="text-sm mb-4">
+            実際に問題を解いてみましょう。
+        </p>
+        <a
+          href="https://kenkoooo.com/atcoder/#/contest/show/6b7fdc5a-ed5e-4962-a120-459bcff18609"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-block bg-blue-600 text-white px-4 py-2 border-2 border-blue-900 shadow-[3px_3px_0_#1e3a8a] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition font-bold text-sm"
+        >
+          バチャコンを開く ➔
+        </a>
+      </section>
+
+</main>
+<footer class="text-center py-10 px-3">
+  <div class="inline-block bg-white border-2 border-gray-400 px-6 py-2 shadow-[2px_2px_0_#000] text-sm font-bold text-gray-700 win-panel">IQ C++ Autumn Workshop 2026 - Rep. Takiguchi</div>
+</footer>
+<script>
+  hljs.highlightAll();
+  function copyCode(btn) {
+    const container = btn.closest('.code-container');
+    const code = container.querySelector('code');
+    const textToCopy = code ? code.innerText : '';
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      const originalText = btn.innerText;
+      btn.innerText = '完了！';
+      btn.classList.remove('bg-blue-600');
+      btn.classList.add('bg-green-600');
+      setTimeout(() => {
+        btn.innerText = originalText;
+        btn.classList.remove('bg-green-600');
+        btn.classList.add('bg-blue-600');
+      }, 1500);
+    }).catch(() => {
+      btn.innerText = 'コピー失敗';
+      setTimeout(() => { btn.innerText = 'コピー'; }, 1500);
+    });
+  }
+</script>
+</body>
+</html>
