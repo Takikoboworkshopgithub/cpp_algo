@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>第06講：幅優先探索（BFS） | IQ C++講習会</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
+    <style>
+      body {
+        background-color: #c0c0c0;
+        font-family: 'MS PGothic', 'Hiragino Kaku Gothic ProN', sans-serif;
+      }
+      @keyframes blink { 50% { opacity: 0; } }
+      .blink { animation: blink 1s infinite; }
+      .win-panel {
+        border: 2px solid;
+        border-color: #ffffff #808080 #808080 #ffffff;
+      }
+      pre {
+        background: #ffffff !important;
+        border: 2px solid #808080 !important;
+        box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
+        border-radius: 0 !important;
+        margin: .5rem 0 !important;
+        padding: 1rem !important;
+        overflow-x: auto;
+      }
+      code.hljs {
+        background: transparent !important;
+        font-family: Consolas, Monaco, 'Andale Mono', monospace !important;
+        font-size: .88rem !important;
+        padding: 0 !important;
+        color: #000;
+      }
+      .code-container { position: relative; }
+      .array-cell { min-width: 48px; }
+      .section-title {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #1e3a8a;
+        background: #dbeafe;
+        border-left: 4px solid #1e3a8a;
+        padding: .25rem .75rem;
+        margin-bottom: 1rem;
+      }
+      .note {
+        background: #fffbeb;
+        border: 2px solid #eab308;
+        padding: .75rem;
+      }
+      .diagram {
+        background: #eff6ff;
+        border: 2px solid #60a5fa;
+        padding: 1rem;
+      }
+      .small-label { font-size: .7rem; color: #4b5563; }
+      .grid-cell {
+        width: 2.15rem; height: 2.15rem;
+        display: flex; align-items: center; justify-content: center;
+        border: 1px solid #6b7280; font-family: Consolas, monospace;
+        font-weight: bold; font-size: .8rem;
+      }
+      .wall { background: #4b5563; color: white; }
+      .road { background: white; }
+      .start { background: #fed7aa; color: #9a3412; }
+      .goal { background: #bbf7d0; color: #166534; }
+      .visited { background: #bfdbfe; color: #1e40af; }
+      a { overflow-wrap: anywhere; }
+    </style>
+  </head>
+  <body class="text-black pb-10">
+    <header class="text-center py-10">
+      <div class="inline-block bg-white border-4 border-gray-500 shadow-[4px_4px_0_#888] px-8 py-4 text-left max-w-2xl">
+        <h1 class="text-2xl font-bold text-blue-800 border-b-4 border-double border-blue-500 pb-2 text-center">
+          第06講：幅優先探索（BFS）
+        </h1>
+        <p class="mt-3 text-sm text-center font-bold">
+          「近い場所から順番に」探索する。<br />
+          Queueを使って、最短距離を求めよう。
+        </p>
+        <p class="mt-2 blink text-blue-700 font-bold text-center">★ 先に見つけた経路が、最短経路になる ★</p>
+      </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 space-y-10">
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="section-title">0. BFSとは</h2>
+        <p class="text-sm mb-3">今回は、グラフ探索の基礎的なアルゴリズムである<strong>BFS（Breadth-First Search：幅優先探索）</strong>について扱います！</p>
+        <p class="text-sm mb-3">
+          BFSは、スタート地点から<strong>距離の近い場所から順番に探索していく</strong>アルゴリズムです。
+          スタート地点から移動できる場所を調べ、そこからさらに移動できる場所を調べる、という処理を繰り返します。
+          最終的には、スタート地点から到達できる場所すべてを探索できます。
+        </p>
+        <p class="text-sm mb-3">身の周りの例では、ペイントツールの「塗りつぶし」のような処理にも、BFSと同じ考え方が使われます。</p>
+
+        <div class="diagram win-panel mb-4">
+          <p class="text-xs font-bold text-blue-900 text-center mb-2">BFSの探索イメージ</p>
+          <img src="./BFS.gif" alt="BFSがスタート地点から近い場所の順に探索していくアニメーション" class="block mx-auto max-w-full border border-gray-400 bg-white" />
+          <p class="small-label text-center mt-2">同じ距離にある頂点を順番に調べてから、次の距離へ進みます。</p>
+        </div>
+
+        <p class="text-sm mb-3">
+          BFSは迷路を解くだけでなく、スタートから各地点までの<strong>最短距離</strong>を求めることができます。
+          探索を終えると、各地点にスタートから何回移動すれば到達できるかが記録されます。
+        </p>
+        <div class="bg-gray-50 border-2 border-gray-400 p-3 win-panel mb-4">
+          <p class="text-xs font-bold text-gray-700 mb-2">距離を記録した迷路の例</p>
+          <img src="https://qiita-user-contents.imgix.net/https%3A%2F%2Fqiita-image-store.s3.ap-northeast-1.amazonaws.com%2F0%2F182963%2F3aef75d2-3bf2-5e43-aab9-6ee293b4a38a.png?ixlib=rb-4.1.1&auto=format&gif-q=60&q=75&w=1400&fit=max&s=eab1a31f0339c0f5d9dd73161e67272b"
+               alt="BFSによって迷路の各マスにスタートからの距離が記録された例" class="max-w-full mx-auto" />
+          <p class="small-label mt-2">各マスの数値は、スタート地点からそのマスまでの最小移動回数を表します。</p>
+        </div>
+        <p class="text-sm mb-3">
+          BFSは、二次元配列（グリッド）のようなグラフにも、木のグラフにも使えます。
+          今回はまず木のグラフで仕組みを確認し、その後、迷路のようなグリッドに応用します。
+        </p>
+        <div class="note win-panel text-sm font-bold">
+          BFSのポイント：<strong>Queueを使い、スタート地点から近い頂点の順番に探索する。</strong>
+        </div>
+      </section>
+
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="section-title">1. BFSの実装に使うQueue</h2>
+        <p class="text-sm mb-3">BFSの探索には<strong>Queue（キュー）</strong>を用います。まずはQueueの仕組みを復習しましょう。</p>
+        <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel mb-4">
+          <a href="https://takikoboworkshopgithub.github.io/cpp_introduction_for_beginner/07/index.html" target="_blank" rel="noopener noreferrer" class="text-blue-700 underline font-bold">
+            Queueの復習：C++初心者講習会 ➔
+          </a>
+        </div>
+        <p class="text-sm mb-3">
+          Queueは、筒を横に倒したような構造です。<strong>後ろから要素を入れ、前から取り出す</strong>仕組みを持っています。
+          このように、先に入れた要素を先に取り出す方式をFIFO（First In, First Out）といいます。
+        </p>
+        <p class="text-sm mb-3">
+          BFSでは、発見した頂点をQueueに追加します。そしてQueueの先頭から頂点を取り出し、その頂点から移動できる場所を調べます。
+          先に発見した頂点から処理されるため、近い場所から順番に探索できます。
+        </p>
+        <div class="bg-gray-50 border-2 border-gray-400 p-3 win-panel">
+          <p class="text-xs font-bold text-blue-900 mb-2">木のグラフでQueueを使う様子</p>
+          <div class="aspect-video">
+            <iframe class="w-full h-full border border-gray-500 bg-black" src="https://www.youtube.com/embed/5MwMPklN6PA" title="Queueを使った幅優先探索の解説動画" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+          </div>
+          <p class="small-label mt-2">動画を見ながら、頂点をQueueに追加する順番と取り出す順番に注目してください。</p>
+        </div>
+      </section>
+
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="section-title">2. 木のグラフでBFSを実装する</h2>
+        <p class="text-sm mb-3">ここからは、動画に登場する木のグラフを例に、BFSを言葉で整理してからコードにしてみます。</p>
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">2-1. グラフを構築する</h3>
+        <p class="text-sm mb-3">
+          まず、頂点同士がどのようにつながっているかをプログラムで扱える形にします。
+          今回のグラフには、次の7本の辺があります。
+        </p>
+        <div class="diagram win-panel mb-3">
+          <p class="text-xs font-bold text-blue-900 text-center mb-2">今回扱う木のグラフ</p>
+          <img src="./tree.png" alt="頂点5、2、7、0、4、6、9、3を辺でつないだ木のグラフ" class="block mx-auto max-w-full max-h-72 object-contain bg-white" />
+          <p class="text-xs text-center mt-2 font-mono">5-2 / 5-7 / 2-0 / 2-4 / 7-6 / 7-9 / 4-3</p>
+        </div>
+        <p class="text-sm mb-3">辺の情報は、以下のように与えられているとします。</p>
+        <div class="code-container mb-3">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-text">5 2
+5 7
+2 0
+2 4
+7 6
+7 9
+4 3</code></pre>
+        </div>
+        <p class="text-sm mb-3">
+          例えば、頂点2につながっている頂点は0、4、5です。
+          そこで、各頂点について「隣接している頂点の一覧」を保存する配列を作ります。
+          このような表現を<strong>隣接リスト</strong>といいます。
+        </p>
+        <div class="code-container mb-3">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-cpp">vector&lt;vector&lt;int&gt;&gt; G(N);
+
+for (int i = 0; i &lt; edge_num; i++) {
+    int a, b;
+    cin &gt;&gt; a &gt;&gt; b;
+    G[a].push_back(b);
+    G[b].push_back(a);
+}</code></pre>
+        </div>
+        <p class="text-sm mb-3">
+          今回は無向グラフなので、頂点aから頂点bへ移動できるだけでなく、頂点bから頂点aへも移動できます。
+          そのため、<code>G[a]</code>と<code>G[b]</code>の両方に相手の頂点を追加します。
+        </p>
+        <p class="text-sm mb-2">頂点数を10とした場合、Gには次のような情報が格納されます。</p>
+        <div class="bg-gray-50 border-2 border-gray-400 p-3 win-panel font-mono text-xs leading-6 overflow-x-auto">
+          G[0] = {2}<br />
+          G[1] = {}<br />
+          G[2] = {0, 4, 5}<br />
+          G[3] = {4}<br />
+          G[4] = {2, 3}<br />
+          G[5] = {2, 7}<br />
+          G[6] = {7}<br />
+          G[7] = {5, 6, 9}<br />
+          G[8] = {}<br />
+          G[9] = {7}
+        </div>
+        <p class="small-label mt-2">※頂点1と8は、どの辺にもつながっていないため、空のリストになります。</p>
+
+        <h3 class="font-bold text-blue-800 mt-6 mb-2 border-b-2 border-gray-400 pb-1">2-2. 探索する</h3>
+        <p class="text-sm mb-3">グラフを構築できたら、次はBFSを実行します。必要になるのは、距離を記録する配列<code>dist</code>と、頂点を順番に管理する<code>queue</code>です。</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 text-xs">
+          <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel">
+            <p class="font-bold text-blue-900 mb-1 font-mono">dist</p>
+            <p>各頂点までの最小距離を保存します。まだ探索していない頂点には<code>-1</code>を入れます。</p>
+          </div>
+          <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel">
+            <p class="font-bold text-blue-900 mb-1 font-mono">queue</p>
+            <p>これから調べる頂点を、発見した順番に保存します。</p>
+          </div>
+        </div>
+        <p class="text-sm mb-2 font-bold">探索の手順は次の通りです。</p>
+        <ol class="list-decimal pl-6 text-sm space-y-2 mb-4">
+          <li><strong>初期化：</strong>すべての頂点の<code>dist</code>を-1にします。</li>
+          <li><strong>スタート地点：</strong>スタート地点の<code>dist</code>を0にし、その頂点をQueueに追加します。今回は頂点5から始めます。</li>
+          <li><strong>取り出す：</strong>Queueの先頭から頂点を1つ取り出し、<code>cur</code>とします。</li>
+          <li><strong>隣接頂点を調べる：</strong><code>G[cur]</code>に保存された頂点を順番に確認します。</li>
+          <li><strong>未探索なら追加：</strong>その頂点の<code>dist</code>が-1なら、<code>dist[cur] + 1</code>を記録し、Queueに追加します。すでに探索済みなら何もしません。</li>
+          <li><strong>繰り返す：</strong>Queueが空になるまで、取り出しと隣接頂点の確認を繰り返します。</li>
+        </ol>
+        <div class="note win-panel text-sm mb-4">
+          <strong>発見したときにはdistを更新しよう！</strong><br />
+          Queueに追加した時点で探索済みにしておくことで、同じ頂点を何度もQueueに追加することを防ぐ。
+          また、BFSでは近い頂点から順番に発見するため、最初に記録した距離が最短距離になる。迂回してたどり着いて場所が最短経路にはならない。
+        </div>
+        <p class="text-sm mb-2 font-bold text-blue-800">BFSの基本コード</p>
+        <div class="code-container mb-4">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-cpp">// BFS のためのデータ構造
+vector&lt;int&gt; dist(N, -1);
+queue&lt;int&gt; que;
+
+// 初期条件 (スタート地点は頂点 5)
+dist[5] = 0;
+que.push(5);
+
+// Queue が空になるまで探索
+while (!que.empty()) {
+    int cur = que.front();
+    que.pop();
+
+    // cur から辿れる頂点をすべて調べる
+    for (int nv : G[cur]) {
+        if (dist[nv] != -1) continue;
+
+        // 距離を更新して Queue に追加
+        dist[nv] = dist[cur] + 1;
+        que.push(nv);
+    }
+}</code></pre>
+        </div>
+        <p class="text-sm mb-3">
+          Queueが空になったら探索終了です。<code>dist</code>には、スタート地点からの最小距離が保存されています。
+          -1のままの頂点は、スタート地点から到達できなかった頂点です。
+          特定のゴールまでの距離を知りたい場合は、<code>dist[goal]</code>を出力すれば確認できます。
+        </p>
+        <div class="bg-blue-50 border-2 border-blue-400 p-3 win-panel mb-4">
+          <p class="text-xs font-bold text-blue-900 mb-2">今回の探索結果（スタート：頂点5）</p>
+          <div class="grid grid-cols-5 sm:grid-cols-10 gap-1 text-center font-mono text-xs">
+            <div class="bg-white border border-gray-500 p-2">0<br /><b>2</b></div>
+            <div class="bg-gray-200 border border-gray-500 p-2">1<br /><b>-1</b></div>
+            <div class="bg-white border border-gray-500 p-2">2<br /><b>1</b></div>
+            <div class="bg-white border border-gray-500 p-2">3<br /><b>3</b></div>
+            <div class="bg-white border border-gray-500 p-2">4<br /><b>2</b></div>
+            <div class="bg-yellow-100 border-2 border-yellow-600 p-2">5<br /><b>0</b></div>
+            <div class="bg-white border border-gray-500 p-2">6<br /><b>2</b></div>
+            <div class="bg-white border border-gray-500 p-2">7<br /><b>1</b></div>
+            <div class="bg-gray-200 border border-gray-500 p-2">8<br /><b>-1</b></div>
+            <div class="bg-white border border-gray-500 p-2">9<br /><b>2</b></div>
+          </div>
+          <p class="small-label mt-2">各マスは「頂点番号 / distの値」です。</p>
+        </div>
+
+        <h3 class="font-bold text-blue-800 mt-6 mb-2 border-b-2 border-gray-400 pb-1">2-3. 全体のコード</h3>
+        <p class="text-sm mb-2">ここまでの処理をまとめると、次のようになります。</p>
+        <div class="code-container mb-4">
+          <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+          <pre><code class="language-cpp">#include &lt;bits/stdc++.h&gt;
+using namespace std;
+
+int main() {
+    // 頂点数と辺数
+    int N, M;
+    cin &gt;&gt; N &gt;&gt; M;
+
+    // グラフ入力受取 (無向グラフ)
+    vector&lt;vector&lt;int&gt;&gt; G(N);
+    for (int i = 0; i &lt; M; ++i) {
+        int a, b;
+        cin &gt;&gt; a &gt;&gt; b;
+        G[a].push_back(b);
+        G[b].push_back(a);
+    }
+
+    // BFS のためのデータ構造
+    vector&lt;int&gt; dist(N, -1);
+    queue&lt;int&gt; que;
+
+    // 初期条件 (頂点 0 をスタート地点とする)
+    dist[0] = 0;
+    que.push(0);
+
+    // BFS 開始
+    while (!que.empty()) {
+        int cur = que.front();
+        que.pop();
+
+        for (int nv : G[cur]) {
+            if (dist[nv] != -1) continue;
+
+            dist[nv] = dist[cur] + 1;
+            que.push(nv);
+        }
+    }
+
+    // 結果出力
+    for (int v = 0; v &lt; N; ++v) {
+        cout &lt;&lt; v &lt;&lt; ": " &lt;&lt; dist[v] &lt;&lt; endl;
+    }
+}</code></pre>
+        </div>
+        <p class="text-sm mb-3">
+          上の全体コードでは、入力された頂点0をスタート地点にしています。
+          先ほどの頂点5から始める例と同じ動作にしたい場合は、初期条件の<code>dist[0]</code>と<code>que.push(0)</code>を、それぞれ<code>dist[5]</code>と<code>que.push(5)</code>に変更してください。
+        </p>
+        <p class="text-sm mb-3">慣れてくるまでは、この実装の意図が汲み取りづらいと思います。筆者が初学の際に参考にした動画も紹介しておきます。</p>
+        <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel mb-3">
+          <a href="https://www.youtube.com/watch?v=0_9heBS7Flg&t=244s" target="_blank" rel="noopener noreferrer" class="text-blue-700 underline font-bold">BFSの章から解説動画を見る ➔</a>
+        </div>
+        <div class="note win-panel text-sm">
+          コードを眺めるだけでなく、紙とペンを使ってQueueの中身と<code>dist</code>の変化を1手ずつ追ってみましょう。
+          難しいアルゴリズムは、実際に手で実行してみることが理解への近道です。
+        </div>
+      </section>
+
+
+<section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+  <h2 class="section-title">3. グリッド探索</h2>
+  <p class="text-sm mb-3">
+    ここまでは木のようなグラフを扱いました。次は、二次元配列で表される迷路の探索を考えてみましょう。
+    基本的な考え方は木のときと同じですが、隣接する頂点の調べ方が異なります。
+  </p>
+  <p class="text-sm mb-3">
+    今回は、<code>#</code>を壁、<code>.</code>を通路とするグリッドを考えます。
+    グリッドでは、各マスを頂点、上下左右に隣接するマス同士を辺とみなすことで、グラフとして扱うことができます。
+  </p>
+
+  <div class="bg-gray-50 border-2 border-gray-400 p-3 win-panel mb-4">
+    <p class="text-xs font-bold text-blue-900 mb-2">今回扱うグリッド</p>
+    <div class="font-mono text-sm leading-6 text-center">
+      #####<br />
+      #...#<br />
+      #.#.#<br />
+      #...#<br />
+      #.###<br />
+      #...#<br />
+      #####
+    </div>
+    <p class="small-label text-center mt-2">スタート地点は (x, y) = (1, 1) とします。</p>
+  </div>
+
+  <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">3-1. グリッドの入力と管理</h3>
+  <p class="text-sm mb-3">
+    まずは、グリッドを入力して二次元配列に格納します。
+    入力では、上から順に各行を文字列として受け取ります。<br>
+    横方向をx、縦方向をyとして扱い、<code>Grid[x][y]</code>でアクセスできるように格納します。
+  </p>
+  <div class="code-container mb-3">
+    <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+    <pre><code class="language-cpp">// グリッドの幅と高さ
+int W, H;
+cin >> W >> H;
+
+// グリッドの入力
+vector&lt;string&gt; Grid(W, string(H));
+
+for (int y = 0; y &lt; H; y++) {
+    string S;
+    cin >> S;
+
+    for (int x = 0; x &lt; W; x++) {
+        Grid[x][y] = S[x];
+    }
+}</code></pre>
+  </div>
+  <p class="text-sm mb-3">
+    入力された文字列は行ごとに読み込みますが、配列には転置して格納しています。
+    そのため、横幅がW、縦幅がHのグリッドに対して、<code>Grid[x][y]</code>で各マスにアクセスできます。
+  </p>
+  <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel mb-4">
+    <p class="text-xs font-bold text-blue-900 mb-2">配列の添字と座標</p>
+    <div class="font-mono text-xs leading-6 overflow-x-auto">
+      Grid[0][0] = '#'<br />
+      Grid[1][1] = '.'<br />
+      Grid[2][1] = '.'<br />
+      Grid[2][2] = '#'
+    </div>
+    <p class="small-label mt-2">Grid[x][y] の順番で、横方向・縦方向の座標を指定します。</p>
+  </div>
+
+  <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">3-2. 上下左右への移動</h3>
+  <p class="text-sm mb-3">
+    木のグラフでは、<code>G[cur]</code>を使って現在の頂点から移動できる頂点を調べていました。
+    一方、グリッドの場合は、現在位置から<strong>上下左右の4方向</strong>に移動できるかを調べます。
+  </p>
+  <p class="text-sm mb-2">現在位置を<code>(x, y)</code>とすると、移動先は次の4つです。</p>
+
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-center mb-4">
+    <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel"><b>上</b><br /><code>(x, y - 1)</code></div>
+    <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel"><b>下</b><br /><code>(x, y + 1)</code></div>
+    <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel"><b>左</b><br /><code>(x - 1, y)</code></div>
+    <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel"><b>右</b><br /><code>(x + 1, y)</code></div>
+  </div>
+
+  <p class="text-sm mb-3">この移動量を配列で表すと、次のようになります。</p>
+  <div class="code-container mb-3">
+    <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+    <pre><code class="language-cpp">int dx[4] = {0, 0, -1, 1};
+int dy[4] = {-1, 1, 0, 0};</code></pre>
+  </div>
+  <p class="text-sm mb-3">
+    <code>dx[d]</code>と<code>dy[d]</code>を同じ番号で組み合わせることで、4方向への移動をまとめて扱えます。
+    例えば<code>d = 0</code>なら、<code>y</code>が1小さくなるので上方向です。
+  </p>
+
+  <div class="diagram win-panel mb-4">
+    <p class="text-xs font-bold text-blue-900 text-center mb-2">移動方向の対応</p>
+    <div class="grid grid-cols-3 gap-1 max-w-xs mx-auto text-center font-mono text-xs">
+      <div></div><div class="bg-blue-100 border border-blue-500 p-2">d=0<br />(0, -1)</div><div></div>
+      <div class="bg-blue-100 border border-blue-500 p-2">d=2<br />(-1, 0)</div>
+      <div class="bg-yellow-100 border-2 border-yellow-600 p-2 font-bold">現在地<br />(x, y)</div>
+      <div class="bg-blue-100 border border-blue-500 p-2">d=3<br />(+1, 0)</div>
+      <div></div><div class="bg-blue-100 border border-blue-500 p-2">d=1<br />(0, +1)</div><div></div>
+    </div>
+  </div>
+
+  <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">3-3. 移動できるか判定する</h3>
+  <p class="text-sm mb-3">移動先が見つかったら、次の3つを確認します。</p>
+  <ol class="list-decimal pl-6 text-sm space-y-2 mb-4">
+    <li>グリッドの範囲内にあること。</li>
+    <li>壁（<code>#</code>）ではないこと。</li>
+    <li>まだ探索していないこと（<code>dist[nx][ny] == -1</code>）。</li>
+  </ol>
+  <p class="text-sm mb-3">すべて満たしていれば、そのマスまでの距離を更新してQueueに追加します。</p>
+
+  <div class="code-container mb-4">
+    <button onclick="copyCode(this)" class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel">コピー</button>
+    <pre><code class="language-cpp">// BFS のためのデータ構造
+vector&lt;vector&lt;int&gt;&gt; dist(W, vector&lt;int&gt;(H, -1));
+queue&lt;pair&lt;int, int&gt;&gt; que;
+
+// 初期条件 (スタート地点は x=1, y=1)
+dist[1][1] = 0;
+que.push({1, 1});
+
+// 上下左右への移動量
+int dx[4] = {0, 0, -1, 1};
+int dy[4] = {-1, 1, 0, 0};
+
+// BFS 開始
+while (!que.empty()) {
+    auto [x, y] = que.front();
+    que.pop();
+
+    // 上下左右の4方向を調べる
+    for (int d = 0; d &lt; 4; d++) {
+        int nx = x + dx[d];
+        int ny = y + dy[d];
+
+        // グリッドの範囲外ならスキップ
+        if (nx &lt; 0 || nx &gt;= W || ny &lt; 0 || ny &gt;= H) continue;
+
+        // 壁ならスキップ
+        if (Grid[nx][ny] == '#') continue;
+
+        // すでに探索済みならスキップ
+        if (dist[nx][ny] != -1) continue;
+
+        // 距離を更新して Queue に追加
+        dist[nx][ny] = dist[x][y] + 1;
+        que.push({nx, ny});
+    }
+}</code></pre>
+  </div>
+
+  <div class="note win-panel text-sm mb-4">
+    <strong>座標と配列の添字に注意！</strong><br />
+    今回は<code>Grid[x][y]</code>という約束にしています。
+    そのため、横方向の範囲は<code>W</code>、縦方向の範囲は<code>H</code>で判定し、
+    距離配列も<code>dist[W][H]</code>として作ります。
+  </div>
+
+  <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">3-4. グリッド探索の結果</h3>
+  <p class="text-sm mb-3">
+    このように、木のグラフで使ったBFSと同じ仕組みで、迷路の探索も実行できます。
+    違うのは「隣接する頂点をどのように見つけるか」という部分だけです。
+  </p>
+  <div class="bg-blue-50 border-2 border-blue-400 p-3 win-panel">
+    <p class="text-xs font-bold text-blue-900 mb-2">グリッドBFSで覚えること</p>
+    <ul class="list-disc pl-5 text-sm space-y-1">
+      <li>入力した各行を転置して、<code>Grid[x][y]</code>に格納する。</li>
+      <li>Queueには座標<code>(x, y)</code>を入れる。</li>
+      <li><code>dx</code>と<code>dy</code>で上下左右を調べる。</li>
+      <li>範囲外・壁・探索済みのマスはスキップする。</li>
+      <li>距離を更新してからQueueに追加する。</li>
+    </ul>
+  </div>
+</section>
+
+<section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+  <h2 class="section-title">4. まとめ</h2>
+  <p class="text-sm mb-3">今回の内容を整理しましょう。</p>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 text-sm">
+    <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel">
+      <p class="font-bold text-blue-900 mb-1">BFS</p>
+      <p>スタート地点から近い頂点の順に探索するアルゴリズム。</p>
+    </div>
+    <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel">
+      <p class="font-bold text-blue-900 mb-1">Queue</p>
+      <p>発見した頂点を順番に管理するデータ構造。</p>
+    </div>
+    <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel">
+      <p class="font-bold text-blue-900 mb-1">dist</p>
+      <p>スタート地点から各頂点までの最短距離を保存する配列。</p>
+    </div>
+    <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel">
+      <p class="font-bold text-blue-900 mb-1">グリッド探索</p>
+      <p>上下左右の移動先を調べることで、迷路にもBFSを適用できる。</p>
+    </div>
+  </div>
+  <div class="note win-panel text-sm font-bold">
+    BFSは、各辺の移動コストがすべて同じ（例えば、1回の移動をすべて1と数える）場合に、最短距離を求められます。
+  </div>
+</section>
+
+      <!-- 12. ばちゃこんにチャレンジ！ -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          5. ばちゃこんにチャレンジ！
+        </h2>
+        <p class="text-sm mb-4">
+            実際に問題を解いてみましょう。
+        </p>
+        <a
+          href="https://kenkoooo.com/atcoder/#/contest/show/9df12c17-f630-4762-b481-e4866e599240"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-block bg-blue-600 text-white px-4 py-2 border-2 border-blue-900 shadow-[3px_3px_0_#1e3a8a] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition font-bold text-sm"
+        >
+          バチャコンを開く ➔
+        </a>
+      </section>
+
+
+    </main>
+
+    <footer class="text-center py-10">
+      <div class="inline-block bg-white border-2 border-gray-400 px-6 py-2 shadow-[2px_2px_0_#000] text-sm font-bold text-gray-700 win-panel">
+        IQ C++ Autumn Workshop 2026 - Rep. Takiguchi
+      </div>
+    </footer>
+
+    <script>
+      hljs.highlightAll();
+      function copyCode(btn) {
+        const container = btn.closest('.code-container');
+        const code = container.querySelector('code').innerText;
+        navigator.clipboard.writeText(code).then(() => {
+          const originalText = btn.innerText;
+          btn.innerText = '完了！';
+          btn.classList.remove('bg-blue-600');
+          btn.classList.add('bg-green-600');
+          setTimeout(() => {
+            btn.innerText = originalText;
+            btn.classList.remove('bg-green-600');
+            btn.classList.add('bg-blue-600');
+          }, 1500);
+        });
+      }
+    </script>
+  </body>
+</html>
