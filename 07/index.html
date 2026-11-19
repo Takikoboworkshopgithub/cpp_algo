@@ -1,0 +1,709 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>第07講：BFS応用編 | IQ C++講習会</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
+    <style>
+      body {
+        background-color: #c0c0c0;
+        font-family: 'MS PGothic', 'Hiragino Kaku Gothic ProN', sans-serif;
+      }
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+      .blink {
+        animation: blink 1s infinite;
+      }
+      .win-panel {
+        border: 2px solid;
+        border-color: #fff #808080 #808080 #fff;
+      }
+      pre {
+        background: #fff !important;
+        border: 2px solid #808080 !important;
+        box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
+        border-radius: 0 !important;
+        margin: 0.5rem 0 !important;
+        padding: 1rem !important;
+        overflow-x: auto;
+      }
+      code.hljs {
+        background: transparent !important;
+        font-family: Consolas, Monaco, 'Andale Mono', monospace !important;
+        font-size: 0.86rem !important;
+        padding: 0 !important;
+        color: #000;
+      }
+      .code-container {
+        position: relative;
+      }
+      .section-title {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #1e3a8a;
+        background: #dbeafe;
+        border-left: 4px solid #1e3a8a;
+        padding: 0.25rem 0.75rem;
+        margin-bottom: 1rem;
+      }
+      .sub-title {
+        font-weight: 700;
+        color: #1e40af;
+        border-bottom: 2px solid #9ca3af;
+        padding-bottom: 0.25rem;
+        margin: 1.5rem 0 0.75rem;
+      }
+      .note {
+        background: #fffbeb;
+        border: 2px solid #eab308;
+        padding: 0.75rem;
+      }
+      .diagram {
+        background: #eff6ff;
+        border: 2px solid #60a5fa;
+        padding: 1rem;
+      }
+      .small-label {
+        font-size: 0.7rem;
+        color: #4b5563;
+      }
+      a {
+        overflow-wrap: anywhere;
+      }
+      html {
+        scroll-behavior: smooth;
+        scroll-padding-top: 1rem;
+      }
+      .toc a {
+        color: #1d4ed8;
+        text-decoration: underline;
+      }
+      .toc a:hover {
+        color: #1e3a8a;
+      }
+      .anchor-link {
+        color: #2563eb;
+        font-size: 0.75rem;
+        margin-left: 0.35rem;
+      }
+    </style>
+  </head>
+  <body class="text-black pb-10">
+    <header class="text-center py-10 px-4">
+      <div
+        class="inline-block bg-white border-4 border-gray-500 shadow-[4px_4px_0_#888] px-6 sm:px-8 py-4 text-left max-w-3xl"
+      >
+        <h1
+          class="text-2xl sm:text-3xl font-bold text-blue-800 border-b-4 border-double border-blue-500 pb-2 text-center"
+        >
+          第07講：BFS 応用編
+        </h1>
+        <p class="mt-3 text-sm text-center font-bold">
+          BFSを少し拡張して、複数の始点・木の直径・最短経路・重み付きの移動を扱おう。
+        </p>
+        <p class="mt-2 blink text-blue-700 font-bold text-center">★ BFSの仕組みを理解すれば、応用も見えてくる ★</p>
+      </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 space-y-8">
+      <nav class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left toc" aria-label="目次">
+        <h2 class="section-title">目次</h2>
+        <ol class="list-decimal pl-6 text-sm space-y-2">
+          <li><a href="#multi-source">多点BFS</a></li>
+          <li>
+            <a href="#diameter">木の直径</a>
+            <ol class="list-[lower-alpha] pl-5 mt-1 space-y-1">
+              <li><a href="#lambda">ラムダ式</a></li>
+              <li><a href="#bfs-lambda">木の直径の実装</a></li>
+            </ol>
+          </li>
+          <li><a href="#path">経路復元</a></li>
+          <li>
+            <a href="#zero-one">0-1 BFS</a>
+            <ol class="list-[lower-alpha] pl-5 mt-1 space-y-1">
+              <li><a href="#deque">Deque</a></li>
+              <li><a href="#zero-one-impl">0-1 BFSの実装</a></li>
+            </ol>
+          </li>
+          <li><a href="#summary">まとめ</a></li>
+        </ol>
+      </nav>
+
+      <section id="multi-source" class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="section-title">1. 多点BFS</h2>
+        <p class="text-sm mb-3">
+          前回は、1つのスタート地点からBFSを行いました。今回は、スタート地点が複数ある場合を考えます。
+          例えば、複数の場所にある避難所から、各地点までの最短距離を求めるような場面です。
+        </p>
+        <p class="text-sm mb-3">
+          多点BFSの考え方は通常のBFSとほとんど同じで、探索開始時に<strong>すべての始点をQueueに入れ、距離を0にする</strong>ことだけです。
+        </p>
+        <p class="text-sm mb-2">グリッドの場合、初期化部分は次のようになります。</p>
+        <div class="code-container mb-3">
+          <button
+            onclick="copyCode(this)"
+            class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel"
+          >
+            コピー
+          </button>
+          <pre>
+<code class="language-cpp">// dist配列を初期化（-1で未訪問を表す）
+vector&lt;vector&lt;int&gt;&gt; dist(H, vector&lt;int&gt;(W, -1));
+
+// 多点BFS用のQueue
+queue&lt;pair&lt;int, int&gt;&gt; que;
+
+// すべての始点をQueueに投入し、距離0で初期化
+for (auto &amp;st : starts) {
+    dist[st.first][st.second] = 0;
+    que.push(st);
+}
+
+// 以降の探索処理は通常のBFSと同じ
+</code></pre>
+        </div>
+      </section>
+
+      <section id="diameter" class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="section-title">2. 木の直径</h2>
+        <h3 id="diameter-what" class="sub-title">2-1. 木の直径とは</h3>
+        <p class="text-sm mb-3">
+          木の直径とは、<strong>木に含まれる2つの頂点間の距離の最大値</strong>です。
+          例えば、次の図のような木では、頂点5と頂点6の間の距離が最も長く、その長さが木の直径になります。今回の場合は5です
+        </p>
+        <div class="diagram win-panel mb-4">
+          <p class="text-xs font-bold text-blue-900 text-center mb-2">木の直径の例</p>
+          <img
+            src="https://algo-logic.info/wp-content/uploads/2020/03/tree.png"
+            alt="木の直径を説明する木構造の図"
+            class="block mx-auto max-w-full max-h-72 object-contain bg-white"
+          />
+          <p class="small-label text-center mt-2">図では、最も離れた2頂点を結ぶ経路の長さが直径です。</p>
+        </div>
+        <p class="text-sm mb-3">木の直径は、BFSを2回行うことで求められます。</p>
+        <ol class="list-decimal pl-6 text-sm space-y-2 mb-4">
+          <li>木の中からランダムな頂点を1つ選びます(通常は0を選ぶ)。</li>
+          <li>その頂点を始点としてBFSを行います。</li>
+          <li>最も遠かった頂点を選び、その頂点からもう一度BFSを行います。</li>
+          <li>2回目のBFSで得られた最大距離が、木の直径です。</li>
+        </ol>
+        <p class="text-sm mb-3">
+          BFSを2回書くのは少し面倒です。
+          そこで、同じ処理をまとめて使えるようにするために、C++の<strong>ラムダ式</strong>を学びましょう。
+        </p>
+
+        <h3 id="lambda" class="sub-title">2-2. ラムダ式とは</h3>
+        <p class="text-sm mb-3">
+          ラムダ式とは、関数のように使える処理を、その場で定義できるC++の機能です。
+          AtCoderでは、新しい関数は基本的にラムダ式で書くと便利です！
+        </p>
+        <p class="text-sm mb-3">
+          main文の変数を引数に取らずとも利用できるのが便利なところです。<br />
+          例えば、配列の要素について「A未満ならBに置き換える」という処理を考えてみます。
+        </p>
+        <p class="text-sm font-bold text-blue-800 mb-1">通常の関数で書く場合</p>
+        <div class="code-container mb-3">
+          <button
+            onclick="copyCode(this)"
+            class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel"
+          >
+            コピー
+          </button>
+          <pre><code class="language-cpp">#include &lt;bits/stdc++.h&gt;
+using namespace std;
+
+vector&lt;int&gt; change(vector&lt;int&gt; X, int A, int B) {
+    for (int &amp;x : X) {
+        if (x &lt; A) x = B;
+    }
+    return X;
+}
+
+int main() {
+    vector&lt;int&gt; X = {3, 7, 2, 8, 5, 1};
+
+    int A = 5;
+    int B = 0;
+
+    X = change(X, A, B);
+
+    for (int x : X) cout &lt;&lt; x &lt;&lt; " ";
+    cout &lt;&lt; endl;
+}</code></pre>
+        </div>
+        <p class="text-sm font-bold text-blue-800 mb-1">ラムダ式で書く場合</p>
+        <div class="code-container mb-3">
+          <button
+            onclick="copyCode(this)"
+            class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel"
+          >
+            コピー
+          </button>
+          <pre><code class="language-cpp">#include &lt;bits/stdc++.h&gt;
+using namespace std;
+
+int main() {
+    vector&lt;int&gt; X = {3, 7, 2, 8, 5, 1};
+
+    int A = 5;
+    int B = 0;
+
+    // ラムダ式で関数を定義
+    auto change = [&amp;](vector&lt;int&gt; X) {
+        for (int &amp;x : X) {
+            if (x &lt; A) x = B;
+        }
+        return X;
+    };//ここの「;」忘れがち
+
+    X = change(X);
+
+    for (int x : X) cout &lt;&lt; x &lt;&lt; " ";
+    cout &lt;&lt; endl;
+}</code></pre>
+        </div>
+        <p class="text-sm mb-3">
+          ラムダ式の基本形は、<code>auto 関数名 = [キャプチャ](引数) { 処理 };</code>です。
+          この例の<code>[&amp;]</code>は、ラムダ式の外側にある変数を参照でキャプチャする指定です。
+          そのため、外側で定義した<code>A</code>と<code>B</code>を引数として渡さずに使えます。
+        </p>
+        <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel text-sm mb-4">
+          <ul class="list-disc pl-5 space-y-1">
+            <li><code>[&amp;]</code>：外側の変数を参照キャプチャする。</li>
+            <li><code>[=]</code>：外側の変数を値キャプチャする。</li>
+            <li><code>[]</code>：外側の変数をキャプチャしない。</li>
+          </ul>
+          <p class="small-label mt-2">
+            ※キャプチャした変数を変更する必要があるか、ラムダ式の外側の変数の寿命が十分かにも注意しましょう。
+          </p>
+        </div>
+
+        <h3 id="sort-lambda" class="sub-title">2-3. sortとラムダ式</h3>
+        <p class="text-sm mb-3">
+          ラムダ式は、<code>sort</code>の比較関数として渡す使い方も便利です。
+          比較関数は、2つの要素を受け取り、「aをbより前に置くべきか」をbool値で返します。
+        </p>
+        <div class="code-container mb-3">
+          <button
+            onclick="copyCode(this)"
+            class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel"
+          >
+            コピー
+          </button>
+          <pre><code class="language-cpp">vector&lt;int&gt; Array = {3, 1, 4, 15, 92, 653, 5};
+
+// 小さい順（デフォルト）
+sort(Array.begin(), Array.end());
+
+// 大きい順
+sort(Array.begin(), Array.end(),
+     [](int a, int b) { return a &gt; b; });
+
+// 変数offsetに近い順
+int offset = 90;
+sort(Array.begin(), Array.end(),
+     [&amp;](int a, int b) {
+         return abs(a - offset) &lt; abs(b - offset);
+     });
+
+// 文字列に変換したときの長さ順
+sort(Array.begin(), Array.end(),
+     [](int a, int b) {
+         return to_string(a).size() &lt; to_string(b).size();
+     });</code></pre>
+        </div>
+        <p class="text-sm mb-3">
+          3つ目の例では、外側で定義した<code>offset</code>を<code>[&amp;]</code>でキャプチャしています。
+          4つ目の例では外側の変数を使わないため、<code>[]</code>で十分です。
+        </p>
+        <div class="note win-panel text-sm">
+          <strong>比較関数の注意：</strong
+          ><code>sort</code>に渡す比較関数は、大小関係が矛盾しないように書く必要があります。
+          同じ値を比較したときにtrueを返すような条件（例えば<code>a &gt;= b</code>）にはしないでください。
+        </div>
+
+        <h3 id="bfs-lambda" class="sub-title">2-4. BFSをラムダ式にする</h3>
+        <p class="text-sm mb-3">
+          それでは、BFSをラムダ式にしてみましょう。
+          次の関数は、始点<code>start</code>からBFSを行い、最も遠い頂点と、その頂点までの距離を返します。
+        </p>
+        <div class="code-container mb-3">
+          <button
+            onclick="copyCode(this)"
+            class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel"
+          >
+            コピー
+          </button>
+          <pre><code class="language-cpp">auto bfs = [&amp;](int start) {
+    vector&lt;int&gt; dist(N, -1);
+    queue&lt;int&gt; que;
+
+    dist[start] = 0;
+    que.push(start);
+
+    while (!que.empty()) {
+        int v = que.front();
+        que.pop();
+
+        for (int nv : G[v]) {
+            if (dist[nv] != -1) continue;
+
+            dist[nv] = dist[v] + 1;
+            que.push(nv);
+        }
+    }
+
+    int farthest = start;
+
+    for (int i = 0; i &lt; N; i++) {
+        if (dist[i] &gt; dist[farthest]) {
+            farthest = i;
+        }
+    }
+
+    return make_pair(farthest, dist[farthest]);
+};
+
+// 1回目：適当な頂点0から最も遠い頂点uを探す
+auto [u, d1] = bfs(0);
+
+// 2回目：uから最も遠い頂点までの距離が直径
+auto [v, diameter] = bfs(u);</code></pre>
+        </div>
+        <p class="text-sm mb-3">
+          <code>[&amp;]</code>によって、ラムダ式の外側にある<code>N</code>や<code>G</code>を利用できます。
+          これで、BFSの処理を1か所にまとめ、始点を変えて2回呼び出せるようになりました。
+        </p>
+        <p class="text-sm mb-3">
+          <code>auto [u, d1]</code
+          >は、返されたpairの中身をそれぞれ<code>u</code>と<code>d1</code>に取り出す構造化束縛です。
+          1回目の距離<code>d1</code>は、このコードでは使いません。
+        </p>
+        <div class="note win-panel text-sm">
+          <strong>木の直径の計算量：</strong>隣接リストを使ったBFSは<code>O(N + M)</code>です。 木では辺数<code
+            >M = N - 1</code
+          >なので、BFSを2回行っても全体で<code>O(N)</code>です。
+        </div>
+      </section>
+
+      <section id="path" class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="section-title">3. 経路復元</h2>
+        <p class="text-sm mb-3">
+          BFSはスタート地点から各頂点までの最短距離を求められます。
+          しかし、距離だけでは「実際にどの頂点を通ればよいか」は分かりません。
+          そこで、最短経路そのものを取り出す<strong>経路復元</strong>を行います。
+        </p>
+        <p class="text-sm mb-3">
+          方法はシンプルです。各頂点について、<strong>その頂点にどこから来たか</strong>を記録しておきます。
+          ゴールに到着したら、記録をたどって1つ前、さらにその前へと戻れば、経路を復元できます。
+        </p>
+        <div class="diagram win-panel mb-4">
+          <p class="text-xs font-bold text-blue-900 text-center mb-2">親（直前の頂点）をたどって経路を復元する</p>
+          <img
+            src="https://gihyo.jp/assets/images/dennou/2022/214/214-0028-04.png"
+            alt="BFSで記録した直前の頂点をたどる経路復元の図"
+            class="block mx-auto max-w-full max-h-64 object-contain bg-white"
+          />
+          <p class="small-label text-center mt-2">ゴールから始点に向かって逆向きにたどります。</p>
+        </div>
+        <p class="text-sm mb-2">次のコードでは、<code>prev[v]</code>に頂点<code>v</code>の直前の頂点を保存します。</p>
+        <div class="code-container mb-3">
+          <button
+            onclick="copyCode(this)"
+            class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel"
+          >
+            コピー
+          </button>
+          <pre><code class="language-cpp">vector&lt;int&gt; prev(N, -2); // -2：まだ経路が決まっていない
+prev[0] = -1;             // -1：始点。これ以上戻れない
+
+queue&lt;int&gt; que;
+que.push(0);
+
+while (!que.empty()) {
+    int current = que.front();
+    que.pop();
+
+    for (int next : G[current]) {
+        if (prev[next] != -2) continue;
+
+        prev[next] = current;
+        que.push(next);
+    }
+}</code></pre>
+        </div>
+        <p class="text-sm mb-3">
+          <code>prev[next] = current</code>としている部分が重要です。
+          頂点<code>next</code>を初めて発見したときに、直前にいた頂点<code>current</code>を記録します。
+          BFSでは初めて発見したときの経路が最短経路なので、この記録を使えば最短経路を復元できます。
+        </p>
+        <p class="text-sm mb-2">ゴールから始点まで逆向きにたどり、最後に反転すると、始点からゴールの順番になります。</p>
+        <div class="code-container mb-3">
+          <button
+            onclick="copyCode(this)"
+            class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel"
+          >
+            コピー
+          </button>
+          <pre><code class="language-cpp">int GOAL = /* ゴールの頂点番号 */;
+
+// 到達できなかった場合
+if (prev[GOAL] == -2) {
+    cout &lt;&lt; "到達できません" &lt;&lt; endl;
+} else {
+    vector&lt;int&gt; path;
+
+    int current = GOAL;
+    while (current != -1) {
+        path.push_back(current);
+        current = prev[current];
+    }
+
+    reverse(path.begin(), path.end());
+
+    for (int v : path) {
+        cout &lt;&lt; v &lt;&lt; " ";
+    }
+    cout &lt;&lt; endl;
+}</code></pre>
+        </div>
+        <div class="note win-panel text-sm">
+          <strong>ポイント：</strong><code>prev</code>の<code>-2</code>と<code>-1</code>は役割が違います。
+          復元した配列はゴールから始点の順になるため、<code>reverse</code>で反転します。
+        </div>
+      </section>
+
+      <section id="zero-one" class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="section-title">4. 0-1 BFS</h2>
+        <p class="text-sm mb-3">
+          RPGなどのゲームでは、ワープゾーンや、滑り始めると止まれない氷のマスなど、移動の仕組みによって移動コストが変わることがあります。
+          このように、頂点から頂点へ移動するコストが0または1になる場合に使えるのが<strong>0-1 BFS</strong>です。
+        </p>
+        <p class="text-sm mb-3">
+          通常のBFSでは、1回移動するたびに距離を1増やしていました。
+          これは、すべての辺の移動コストが1であると考えられます。
+          では、移動コストが0の辺と1の辺が混ざっていたらどうすればよいでしょうか。
+        </p>
+        <p class="text-sm mb-3">
+          0-1 BFSでは、通常のQueueの代わりに<strong>Deque（デック）</strong>を使います。
+          コストが0の辺を通った場合はDequeの先頭に、コストが1の辺を通った場合は末尾に追加します。
+        </p>
+
+        <h3 id="deque" class="sub-title">4-1. Dequeの使い方</h3>
+        <p class="text-sm mb-3">
+          Dequeは、先頭と末尾の両方から要素を追加・削除できるデータ構造です。
+          QueueとStackの両方のような操作ができ、両端への追加・削除はいずれも<code>O(1)</code>で行えます。
+        </p>
+        <div class="code-container mb-3">
+          <button
+            onclick="copyCode(this)"
+            class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel"
+          >
+            コピー
+          </button>
+          <pre><code class="language-cpp">int main() {
+    deque&lt;int&gt; dq = {20, 30};
+
+    // 先頭と末尾への追加（O(1)）
+    dq.push_front(10); // {10, 20, 30}
+    dq.push_back(40);  // {10, 20, 30, 40}
+
+    // 要素へのアクセス
+    cout &lt;&lt; dq[2] &lt;&lt; endl;      // 30
+    cout &lt;&lt; dq.front() &lt;&lt; endl; // 10
+    cout &lt;&lt; dq.back() &lt;&lt; endl;  // 40
+
+    // 先頭と末尾の削除（O(1)）
+    dq.pop_front(); // {20, 30, 40}
+    dq.pop_back();  // {20, 30}
+
+    return 0;
+}</code></pre>
+        </div>
+        <p class="text-sm mb-3">
+          なお、Dequeは添字によるアクセスも<code>O(1)</code>です。
+          <code>dq[2]</code>のように、配列と同じ感覚で要素を参照できます。
+        </p>
+
+        <h3 id="zero-one-impl" class="sub-title">4-2. 0-1 BFSの実装</h3>
+        <p class="text-sm mb-3">
+          0-1 BFSの基本的な流れはBFSと同じです。 ただし、次の頂点へ移動するコストに応じて、Dequeへの追加位置を変えます。
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 text-sm">
+          <div class="bg-blue-50 border-2 border-blue-400 p-3 win-panel">
+            <p class="font-bold text-blue-900 mb-1">コストが0の場合</p>
+            <p><code>push_front</code>でDequeの先頭に追加します。</p>
+          </div>
+          <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel">
+            <p class="font-bold text-gray-800 mb-1">コストが1の場合</p>
+            <p><code>push_back</code>でDequeの末尾に追加します。</p>
+          </div>
+        </div>
+        <p class="text-sm mb-3">
+          頂点は常にDequeの先頭から取り出します。
+          コスト0の移動を優先して処理し、コスト1の移動は後ろに回すことで、距離の小さい候補から処理できるようにします。
+        </p>
+        <div class="code-container mb-3">
+          <button
+            onclick="copyCode(this)"
+            class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel"
+          >
+            コピー
+          </button>
+          <pre><code class="language-cpp">#include &lt;bits/stdc++.h&gt;
+using namespace std;
+
+int main() {
+    int N, M, s;
+    cin &gt;&gt; N &gt;&gt; M &gt;&gt; s;
+
+    // edges[i]に(j, c)があるとき、
+    // iからjへコストcで移動できる
+    vector&lt;vector&lt;pair&lt;int, int&gt;&gt;&gt; edges(N);
+
+    for (int i = 0; i &lt; M; i++) {
+        int a, b, c;
+        cin &gt;&gt; a &gt;&gt; b &gt;&gt; c;
+        edges[a].push_back({b, c});
+
+        // 無向グラフとして扱う場合は、逆向きも追加する
+        // edges[b].push_back({a, c});
+    }
+
+    const int INF = 1e9;
+    vector&lt;int&gt; dist(N, INF);
+
+    deque&lt;int&gt; que;
+    dist[s] = 0;
+    que.push_front(s);
+
+    while (!que.empty()) {
+        int i = que.front();
+        que.pop_front();
+
+        for (auto [j, c] : edges[i]) {
+            int d = dist[i] + c;
+
+            if (d &lt; dist[j]) {
+                dist[j] = d;
+
+                if (c == 0) {
+                    que.push_front(j);
+                } else {
+                    que.push_back(j);
+                }
+            }
+        }
+    }
+
+    // dist[v]が始点sから頂点vまでの最短距離
+    for (int v = 0; v &lt; N; v++) {
+        if (dist[v] == INF) cout &lt;&lt; v &lt;&lt; ": unreachable" &lt;&lt; endl;
+        else cout &lt;&lt; v &lt;&lt; ": " &lt;&lt; dist[v] &lt;&lt; endl;
+    }
+}</code></pre>
+        </div>
+        <p class="text-sm mb-3">
+          <code>edges[i]</code>には、移動先の頂点<code>j</code>と、その辺のコスト<code>c</code>をペアで保存しています。
+          そのため、<code>for (auto [j, c] : edges[i])</code>で移動先とコストを取り出せます。
+        </p>
+        <div class="note win-panel text-sm mb-3">
+          <strong>適用できる条件：</strong>0-1 BFSを使えるのは、各辺のコストが<strong>0または1</strong>の場合です。
+          コストが2以上の値も含まれる一般の非負重み付きグラフでは、Dijkstra法を使います。これはまた今度扱います。
+        </div>
+        <p class="text-sm mb-3">
+          また、上のコードは有向グラフとして辺を登録しています。
+          無向グラフにしたい場合は、コメントにあるように逆向きの辺も追加してください。
+        </p>
+      </section>
+
+      <section id="summary" class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+        <h2 class="section-title">5. まとめ</h2>
+        <p class="text-sm mb-3">今回学んだBFSの応用を整理しましょう。</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 text-sm">
+          <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel">
+            <p class="font-bold text-blue-900 mb-1">多点BFS</p>
+            <p>複数の始点を最初にQueueへ入れることで、複数地点から同時に探索する。</p>
+          </div>
+          <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel">
+            <p class="font-bold text-blue-900 mb-1">木の直径</p>
+            <p>木に対してBFSを2回行い、最も離れた2頂点間の距離を求める。</p>
+          </div>
+          <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel">
+            <p class="font-bold text-blue-900 mb-1">ラムダ式</p>
+            <p>処理をその場で定義できる。キャプチャを使えば外側の変数も利用できる。</p>
+          </div>
+          <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel">
+            <p class="font-bold text-blue-900 mb-1">経路復元</p>
+            <p>各頂点の直前の頂点を記録し、ゴールから逆向きにたどって経路を取り出す。</p>
+          </div>
+          <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel sm:col-span-2">
+            <p class="font-bold text-blue-900 mb-1">0-1 BFS</p>
+            <p>辺のコストが0または1のとき、Dequeの先頭・末尾を使い分けて最短距離を求める。</p>
+          </div>
+        </div>
+        <div class="note win-panel text-sm font-bold">
+          BFSの応用でも、基本は「どの頂点を次に調べるか」「距離をいつ更新するか」です。
+          QueueやDequeの動きと、距離配列の更新タイミングを意識してコードを読んでみましょう。
+        </div>
+      </section>
+
+      <!-- 12. ばちゃこんにチャレンジ！ -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6">
+        <h2 class="text-lg font-bold text-blue-900 bg-blue-100 border-l-4 border-blue-900 px-3 py-1 mb-4">
+          6. ばちゃこんにチャレンジ！
+        </h2>
+        <p class="text-sm mb-4">実際に問題を解いてみましょう。</p>
+        <a
+          href="https://kenkoooo.com/atcoder/#/contest/show/9df12c17-f630-4762-b481-e4866e599240"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-block bg-blue-600 text-white px-4 py-2 border-2 border-blue-900 shadow-[3px_3px_0_#1e3a8a] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition font-bold text-sm"
+        >
+          バチャコンを開く ➔
+        </a>
+      </section>
+    </main>
+
+    <footer class="text-center py-10">
+      <div
+        class="inline-block bg-white border-2 border-gray-400 px-6 py-2 shadow-[2px_2px_0_#000] text-sm font-bold text-gray-700 win-panel"
+      >
+        IQ C++ Autumn Workshop 2026 - Rep. Takiguchi
+      </div>
+    </footer>
+
+    <script>
+      hljs.highlightAll();
+
+      function copyCode(btn) {
+        const container = btn.closest('.code-container');
+        const code = container.querySelector('code').innerText;
+        navigator.clipboard
+          .writeText(code)
+          .then(() => {
+            const originalText = btn.innerText;
+            btn.innerText = '完了！';
+            btn.classList.remove('bg-blue-600');
+            btn.classList.add('bg-green-600');
+            setTimeout(() => {
+              btn.innerText = originalText;
+              btn.classList.remove('bg-green-600');
+              btn.classList.add('bg-blue-600');
+            }, 1500);
+          })
+          .catch(() => {
+            btn.innerText = 'コピー失敗';
+            setTimeout(() => (btn.innerText = 'コピー'), 1500);
+          });
+      }
+    </script>
+  </body>
+</html>
