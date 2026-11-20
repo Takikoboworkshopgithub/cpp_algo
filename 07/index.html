@@ -161,9 +161,9 @@ vector&lt;vector&lt;int&gt;&gt; dist(H, vector&lt;int&gt;(W, -1));
 queue&lt;pair&lt;int, int&gt;&gt; que;
 
 // すべての始点をQueueに投入し、距離0で初期化
-for (auto &amp;st : starts) {
-    dist[st.first][st.second] = 0;
-    que.push(st);
+for (auto [x, y] : starts) {
+    dist[x][y] = 0;
+    que.push({y, x});
 }
 
 // 以降の探索処理は通常のBFSと同じ
