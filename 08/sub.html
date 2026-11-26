@@ -1,0 +1,835 @@
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DFSの応用：部分集合・順列の全探索 | IQ C++講習会</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
+
+    <style>
+      body {
+        background-color: #c0c0c0;
+        font-family: 'MS PGothic', 'Hiragino Kaku Gothic ProN', sans-serif;
+      }
+
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+
+      .blink {
+        animation: blink 1s infinite;
+      }
+
+      .win-panel {
+        border: 2px solid;
+        border-color: #ffffff #808080 #808080 #ffffff;
+      }
+
+      pre {
+        background: #ffffff !important;
+        border: 2px solid #808080 !important;
+        box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
+        border-radius: 0 !important;
+        margin: 0.5rem 0 !important;
+        padding: 1rem !important;
+        overflow-x: auto;
+      }
+
+      code.hljs {
+        background: transparent !important;
+        font-family: Consolas, Monaco, 'Andale Mono', monospace !important;
+        font-size: 0.88rem !important;
+        padding: 0 !important;
+        color: #000;
+      }
+
+      .code-container {
+        position: relative;
+      }
+
+      .section-title {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #1e3a8a;
+        background: #dbeafe;
+        border-left: 4px solid #1e3a8a;
+        padding: 0.25rem 0.75rem;
+        margin-bottom: 1rem;
+      }
+
+      .note {
+        background: #fffbeb;
+        border: 2px solid #eab308;
+        padding: 0.75rem;
+      }
+
+      .diagram {
+        background: #eff6ff;
+        border: 2px solid #60a5fa;
+        padding: 1rem;
+      }
+
+      .small-label {
+        font-size: 0.7rem;
+        color: #4b5563;
+      }
+
+      a {
+        overflow-wrap: anywhere;
+      }
+    </style>
+  </head>
+
+  <body class="text-black pb-10">
+
+    <!-- Header -->
+    <header class="text-center py-10">
+      <div class="inline-block bg-white border-4 border-gray-500 shadow-[4px_4px_0_#888] px-8 py-4 text-left max-w-2xl">
+        <h1 class="text-2xl font-bold text-blue-800 border-b-4 border-double border-blue-500 pb-2 text-center">
+          補足：DFSを使って全探索を楽に実装しよう
+        </h1>
+
+        <p class="mt-3 text-sm text-center font-bold">
+          部分集合や順列を再帰的に列挙する。
+        </p>
+
+        <p class="mt-2 blink text-blue-700 font-bold text-center">
+          ★ 選ぶ → 探索する → 元に戻す ★
+        </p>
+      </div>
+    </header>
+
+
+    <main class="max-w-4xl mx-auto px-4 space-y-10">
+
+      <!-- 1. 部分集合 -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+
+        <h2 class="section-title">1. 部分集合の全探索</h2>
+
+        <p class="text-sm mb-3">
+          bit全探索で行っていた「各要素を選ぶ／選ばない」という探索は、
+          DFSでも実装できます。
+        </p>
+
+        <p class="text-sm mb-3">
+          今回は、選んだ要素を<strong>path</strong>に格納します。
+          同じ要素を重複して選ばないように、次に選ぶ要素を現在の要素より
+          大きいものに限定します。
+        </p>
+
+
+
+<div class="diagram win-panel overflow-x-auto">
+  <p class="text-xs font-bold text-blue-900 text-center mb-4">
+    N = 3 の場合の探索木
+  </p>
+
+  <svg viewBox="0 0 640 300" width="100%" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="tree-arrow" markerWidth="7" markerHeight="7"
+        refX="6" refY="3.5" orient="auto">
+        <path d="M0 0 L7 3.5 L0 7 Z" fill="#64748b"/>
+      </marker>
+    </defs>
+
+    <!-- 辺 -->
+    <g stroke="#64748b" stroke-width="1.8" fill="none"
+       marker-end="url(#tree-arrow)">
+      <path d="M320 38 L160 105"/>
+      <path d="M320 38 L480 105"/>
+
+      <path d="M160 125 L80 195"/>
+      <path d="M160 125 L240 195"/>
+
+      <path d="M80 215 L40 270"/>
+      <path d="M480 125 L480 195"/>
+    </g>
+
+    <!-- ノード -->
+    <g stroke-width="1.5">
+      <!-- 1段目 -->
+      <rect x="285" y="10" width="70" height="30" rx="5"
+        fill="#dbeafe" stroke="#2563eb"/>
+
+      <!-- 2段目 -->
+      <rect x="125" y="105" width="70" height="30" rx="5"
+        fill="#dbeafe" stroke="#2563eb"/>
+      <rect x="445" y="105" width="70" height="30" rx="5"
+        fill="#dbeafe" stroke="#2563eb"/>
+
+      <!-- 3段目 -->
+      <rect x="45" y="195" width="70" height="30" rx="5"
+        fill="#dbeafe" stroke="#2563eb"/>
+      <rect x="205" y="195" width="70" height="30" rx="5"
+        fill="#dbeafe" stroke="#2563eb"/>
+      <rect x="445" y="195" width="70" height="30" rx="5"
+        fill="#dbeafe" stroke="#2563eb"/>
+
+      <!-- 4段目 -->
+      <rect x="5" y="270" width="70" height="25" rx="5"
+        fill="#dbeafe" stroke="#2563eb"/>
+    </g>
+
+    <!-- ラベル -->
+    <g fill="#1e3a8a" font-size="13" font-weight="bold"
+       text-anchor="middle" dominant-baseline="middle">
+      <text x="320" y="25">開始</text>
+
+      <text x="160" y="120">1</text>
+      <text x="480" y="120">2</text>
+
+      <text x="80" y="210">1 2</text>
+      <text x="240" y="210">1 3</text>
+      <text x="480" y="210">2 3</text>
+
+      <text x="40" y="282">1 2 3</text>
+    </g>
+
+    <!-- 補足 -->
+    <g fill="#475569" font-size="11" text-anchor="middle">
+      <text x="160" y="90">1を選択</text>
+      <text x="480" y="90">2を選択</text>
+      <text x="80" y="180">2を追加</text>
+      <text x="240" y="180">3を追加</text>
+      <text x="480" y="180">3を追加</text>
+      <text x="40" y="260">3を追加</text>
+    </g>
+  </svg>
+</div>
+
+
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+          1-1. 探索の考え方
+        </h3>
+
+        <p class="text-sm mb-3">
+          <code>path</code>に現在までに選んだ要素を格納します。
+          例えば、<code>path = {1, 2}</code>の場合、
+          次に選べるのは3だけです。
+        </p>
+
+
+        <p class="text-sm mb-3">
+          例えば、1を選んだ後は2、3を追加できます。
+          2を追加した後は、それより大きい3だけを追加できます。
+        </p>
+
+        <p class="text-sm mb-3">
+          このように、現在の状態に要素を1つ追加して再帰し、
+          探索が終わったら追加した要素を取り除きます。
+        </p>
+
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+          1-2. C++実装
+        </h3>
+
+        <p class="text-sm mb-2">
+          現在の要素より大きい要素だけを次に追加することで、
+          重複のない部分集合を列挙できます。
+        </p>
+
+        <div class="code-container mb-4">
+          <button
+            onclick="copyCode(this)"
+            class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel"
+          >
+            コピー
+          </button>
+
+          <pre><code class="language-cpp">#include &lt;bits/stdc++.h&gt;
+using namespace std;
+
+int N;
+vector&lt;int&gt; path;
+
+void dfs(int cur) {
+    path.push_back(cur);
+
+    // 現在のpathを表示
+    for (int v : path) {
+        cout &lt;&lt; v;
+    }
+    cout &lt;&lt; endl;
+
+    // 自分より大きい要素を追加して探索
+    for (int i = cur + 1; i &lt;= N; i++) {
+        dfs(i);
+    }
+
+    // 再帰から戻ったら最後の要素を削除
+    path.pop_back();
+}
+
+int main() {
+    cin &gt;&gt; N;
+
+    for (int i = 1; i &lt;= N; i++) {
+        dfs(i);
+    }
+}</code></pre>
+        </div>
+
+        <div class="note win-panel text-sm">
+          <strong>pathの状態を元に戻す</strong><br />
+          <code>push_back()</code>で要素を追加し、
+          再帰呼び出しが終わったら<code>pop_back()</code>で取り除きます。
+          このように、探索前の状態に戻すことを<strong>バックトラック</strong>といいます。
+        </div>
+
+      </section>
+
+
+      <!-- 2. 順列 -->
+      <section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+
+        <h2 class="section-title">2. 順列の全探索</h2>
+
+        <p class="text-sm mb-3">
+          順列全探索に対しても、DFSは有効です。
+        </p>
+
+        <p class="text-sm mb-3">
+          部分集合とは異なり、順列では<strong>選ぶ順番も区別</strong>します。
+          そのため、次に選ぶ要素を大きいものに限定することはできません。
+        </p>
+
+<div class="diagram win-panel mb-4">
+  <p class="text-xs font-bold text-blue-900 text-center mb-3">
+    N = 3 の場合の順列探索木
+  </p>
+
+  <svg viewBox="0 0 760 370" class="w-full" xmlns="http://www.w3.org/2000/svg">
+    <g stroke="#64748b" stroke-width="1.5" fill="none">
+      <!-- 開始から1段目 -->
+      <path d="M380 35 L130 105 M380 35 L380 105 M380 35 L630 105"/>
+
+      <!-- 1から2段目 -->
+      <path d="M130 125 L65 195 M130 125 L195 195"/>
+      <!-- 2から2段目 -->
+      <path d="M380 125 L315 195 M380 125 L445 195"/>
+      <!-- 3から2段目 -->
+      <path d="M630 125 L565 195 M630 125 L695 195"/>
+
+      <!-- 2段目から3段目 -->
+      <path d="M65 215 L65 295 M195 215 L195 295
+               M315 215 L315 295 M445 215 L445 295
+               M565 215 L565 295 M695 215 L695 295"/>
+    </g>
+
+    <g fill="#dbeafe" stroke="#2563eb" stroke-width="1.5">
+      <rect x="345" y="15" width="70" height="32" rx="4"/>
+      <rect x="95" y="95" width="70" height="32" rx="4"/>
+      <rect x="345" y="95" width="70" height="32" rx="4"/>
+      <rect x="595" y="95" width="70" height="32" rx="4"/>
+
+      <rect x="30" y="185" width="70" height="32" rx="4"/>
+      <rect x="160" y="185" width="70" height="32" rx="4"/>
+      <rect x="280" y="185" width="70" height="32" rx="4"/>
+      <rect x="410" y="185" width="70" height="32" rx="4"/>
+      <rect x="530" y="185" width="70" height="32" rx="4"/>
+      <rect x="660" y="185" width="70" height="32" rx="4"/>
+    </g>
+
+    <g fill="#fff" stroke="#2563eb" stroke-width="1.5">
+      <rect x="30" y="285" width="70" height="32" rx="4"/>
+      <rect x="160" y="285" width="70" height="32" rx="4"/>
+      <rect x="280" y="285" width="70" height="32" rx="4"/>
+      <rect x="410" y="285" width="70" height="32" rx="4"/>
+      <rect x="530" y="285" width="70" height="32" rx="4"/>
+      <rect x="660" y="285" width="70" height="32" rx="4"/>
+    </g>
+
+    <g fill="#1e3a8a" font-size="13" font-family="monospace" text-anchor="middle" dominant-baseline="middle">
+      <text x="380" y="31">開始</text>
+
+      <text x="130" y="111">1</text>
+      <text x="380" y="111">2</text>
+      <text x="630" y="111">3</text>
+
+      <text x="65" y="201">1 2</text>
+      <text x="195" y="201">1 3</text>
+      <text x="315" y="201">2 1</text>
+      <text x="445" y="201">2 3</text>
+      <text x="565" y="201">3 1</text>
+      <text x="695" y="201">3 2</text>
+
+      <text x="65" y="301">1 2 3</text>
+      <text x="195" y="301">1 3 2</text>
+      <text x="315" y="301">2 1 3</text>
+      <text x="445" y="301">2 3 1</text>
+      <text x="565" y="301">3 1 2</text>
+      <text x="695" y="301">3 2 1</text>
+    </g>
+  </svg>
+
+  <p class="small-label text-center mt-3">
+    各段階で未使用の要素を追加し、3つすべて選ぶと順列が完成します。
+  </p>
+</div>
+
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+          2-1. 探索の考え方
+        </h3>
+
+        <p class="text-sm mb-3">
+          <code>path</code>に現在までに選んだ順番を格納し、
+          <code>used[i]</code>で要素iをすでに使用したかどうかを管理します。
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 text-xs">
+          <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel">
+            <p class="font-bold text-blue-900 mb-1 font-mono">path</p>
+            <p>
+              現在までに選んだ要素を、選んだ順番で保存します。
+            </p>
+          </div>
+
+          <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel">
+            <p class="font-bold text-blue-900 mb-1 font-mono">used</p>
+            <p>
+              各要素をすでに使用したかどうかを管理します。
+            </p>
+          </div>
+        </div>
+
+        <p class="text-sm mb-3">
+          まだ使用していない要素を1つ選び、<code>path</code>に追加します。
+          その要素を使用済みにして、次の要素をDFSで探索します。
+        </p>
+
+        <p class="text-sm mb-3">
+          <code>path</code>にN個の要素が格納されたら、1つの順列が完成です。
+          再帰から戻るときには、追加した要素を取り除き、未使用の状態に戻します。
+        </p>
+
+
+        <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+          2-2. C++実装
+        </h3>
+
+        <div class="code-container mb-4">
+          <button
+            onclick="copyCode(this)"
+            class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel"
+          >
+            コピー
+          </button>
+
+          <pre><code class="language-cpp">#include &lt;bits/stdc++.h&gt;
+using namespace std;
+
+int N;
+vector&lt;int&gt; path;
+vector&lt;bool&gt; used;
+
+void dfs() {
+    // N個すべて選んだら完成
+    if (path.size() == N) {
+        for (int v : path) {
+            cout &lt;&lt; v;
+        }
+        cout &lt;&lt; endl;
+        return;
+    }
+
+    // まだ使用していない要素を探索
+    for (int i = 1; i &lt;= N; i++) {
+        if (used[i]) continue;
+
+        // 要素を追加
+        path.push_back(i);
+        used[i] = true;
+
+        dfs();
+
+        // 元の状態に戻す
+        path.pop_back();
+        used[i] = false;
+    }
+}
+
+int main() {
+    cin &gt;&gt; N;
+    used.resize(N + 1, false);
+
+    dfs();
+}</code></pre>
+        </div>
+
+        <div class="note win-panel text-sm">
+          <strong>usedで使用状況を管理する</strong><br />
+          順列では同じ要素を2回使えません。
+          <code>used[i]</code>がtrueなら、その要素はすでに使用済みです。
+          再帰から戻ったらfalseに戻すことで、別の順列を探索できます。
+        </div>
+
+      </section>
+
+<!-- 3. 配列を使い回すDFS -->
+<section class="bg-white border-4 border-gray-400 shadow-[4px_4px_0_#888] p-6 text-left">
+
+  <h2 class="section-title">3. 配列を使い回すDFS</h2>
+
+  <p class="text-sm mb-3">
+    木のDFSでは、<strong>「根から今いる頂点まで、どの頂点を通ってきたか」</strong>を
+    記録したい場面がよくあります。この「通ってきた道」を<code>path</code>という配列で管理します。
+  </p>
+
+  <p class="text-sm mb-3">
+    たとえば、次の木を頂点1からDFSする場合を考えます。
+  </p>
+
+  <div class="diagram win-panel mb-4">
+    <p class="text-xs font-bold text-blue-900 text-center mb-3">
+      例題の木（頂点1が根）
+    </p>
+
+    <div class="flex justify-center">
+      <svg viewBox="0 0 400 210" class="w-full" style="max-width:420px" xmlns="http://www.w3.org/2000/svg">
+        <g stroke="#64748b" stroke-width="1.8" fill="none">
+          <path d="M200 45 L110 85"/>
+          <path d="M200 45 L290 85"/>
+          <path d="M110 115 L60 160"/>
+          <path d="M110 115 L160 160"/>
+          <path d="M290 115 L290 160"/>
+        </g>
+
+        <g fill="#dbeafe" stroke="#2563eb" stroke-width="1.5">
+          <rect x="180" y="15" width="40" height="30" rx="5"/>
+          <rect x="90" y="85" width="40" height="30" rx="5"/>
+          <rect x="270" y="85" width="40" height="30" rx="5"/>
+          <rect x="40" y="160" width="40" height="30" rx="5"/>
+          <rect x="140" y="160" width="40" height="30" rx="5"/>
+          <rect x="270" y="160" width="40" height="30" rx="5"/>
+        </g>
+
+        <g fill="#1e3a8a" font-size="14" font-weight="bold" font-family="monospace"
+           text-anchor="middle" dominant-baseline="middle">
+          <text x="200" y="30">1</text>
+          <text x="110" y="100">2</text>
+          <text x="290" y="100">3</text>
+          <text x="60" y="175">4</text>
+          <text x="160" y="175">5</text>
+          <text x="290" y="175">6</text>
+        </g>
+      </svg>
+    </div>
+
+    <p class="small-label text-center mt-3">
+      頂点1の子は2と3、頂点2の子は4と5、頂点3の子は6です。
+    </p>
+  </div>
+
+
+
+  <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+    3-1. 探索の考え方
+  </h3>
+
+  <p class="text-sm mb-3">
+    再帰関数に<code>path</code>を毎回値渡しすれば実現できますが、
+    呼び出すたびに配列が<strong>まるごとコピー</strong>されてしまいます。
+    道が長くなるほど、コピーのコストも大きくなります。
+  </p>
+
+  <p class="text-sm mb-3">
+    そこで、<strong>配列を1つだけ用意して、すべての再帰呼び出しで共有</strong>します。
+    その代わり、次の2つのルールを守ります。
+  </p>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 text-xs">
+    <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel">
+      <p class="font-bold text-blue-900 mb-1 font-mono">頂点に入るとき</p>
+      <p>
+        <code>push_back(v)</code>で、自分を<code>path</code>の末尾に追加します。
+      </p>
+    </div>
+
+    <div class="bg-gray-100 border-2 border-gray-400 p-3 win-panel">
+      <p class="font-bold text-blue-900 mb-1 font-mono">頂点から出るとき</p>
+      <p>
+        <code>pop_back()</code>で、自分を<code>path</code>の末尾から取り除きます。
+      </p>
+    </div>
+  </div>
+
+  <p class="text-sm mb-3">
+    子の探索がすべて終わったら自分を取り除くので、親に戻った時点で
+    <code>path</code>は入る前の状態に戻っています。
+  </p>
+
+  <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+    3-2. 実際の動きを追ってみよう
+  </h3>
+
+  <p class="text-sm mb-3">
+    <code>push_back</code>と<code>pop_back</code>のたびに、<code>path</code>がどう変化するかを追います。
+    右側の枠が<code>path</code>の中身で、点線は空きを表します。
+    黄色が、いま追加した要素です。
+  </p>
+
+  <div class="diagram win-panel mb-4 overflow-x-auto">
+    <p class="text-xs font-bold text-blue-900 text-center mb-3">
+      path の変化（上から順に実行）
+    </p>
+
+    <svg viewBox="0 0 640 420" class="w-full" style="min-width:560px" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <style>
+          .op { font-family: monospace; font-size: 13px; fill: #111827; }
+          .ds { font-size: 12px; fill: #374151; }
+          .n  { font-family: monospace; font-size: 15px; font-weight: bold; fill: #1e3a8a; text-anchor: middle; }
+          .st { font-size: 12px; fill: #6b7280; text-anchor: middle; }
+          .ot { font-family: monospace; font-size: 12px; fill: #854d0e; font-weight: bold; }
+        </style>
+      </defs>
+
+      <!-- ① push(1) -->
+      <text class="st" x="12" y="29">①</text>
+      <rect x="26" y="12" width="130" height="24" fill="#dbeafe" stroke="#2563eb"/>
+      <text class="op" x="34" y="29">push_back(1)</text>
+      <text class="ds" x="166" y="29">頂点1に入る</text>
+      <rect x="330" y="11" width="42" height="26" fill="#fef9c3" stroke="#eab308" stroke-width="2"/>
+      <rect x="376" y="11" width="42" height="26" fill="none" stroke="#9ca3af" stroke-dasharray="4 3"/>
+      <rect x="422" y="11" width="42" height="26" fill="none" stroke="#9ca3af" stroke-dasharray="4 3"/>
+      <text class="n" x="351" y="30">1</text>
+      <text class="ot" x="476" y="29">出力：1</text>
+
+      <!-- ② push(2) -->
+      <text class="st" x="12" y="63">②</text>
+      <rect x="26" y="46" width="130" height="24" fill="#dbeafe" stroke="#2563eb"/>
+      <text class="op" x="34" y="63">push_back(2)</text>
+      <text class="ds" x="166" y="63">頂点2に入る</text>
+      <rect x="330" y="45" width="42" height="26" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+      <rect x="376" y="45" width="42" height="26" fill="#fef9c3" stroke="#eab308" stroke-width="2"/>
+      <rect x="422" y="45" width="42" height="26" fill="none" stroke="#9ca3af" stroke-dasharray="4 3"/>
+      <text class="n" x="351" y="64">1</text><text class="n" x="397" y="64">2</text>
+      <text class="ot" x="476" y="63">出力：1 → 2</text>
+
+      <!-- ③ push(4) -->
+      <text class="st" x="12" y="97">③</text>
+      <rect x="26" y="80" width="130" height="24" fill="#dbeafe" stroke="#2563eb"/>
+      <text class="op" x="34" y="97">push_back(4)</text>
+      <text class="ds" x="166" y="97">頂点4に入る</text>
+      <rect x="330" y="79" width="42" height="26" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+      <rect x="376" y="79" width="42" height="26" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+      <rect x="422" y="79" width="42" height="26" fill="#fef9c3" stroke="#eab308" stroke-width="2"/>
+      <text class="n" x="351" y="98">1</text><text class="n" x="397" y="98">2</text><text class="n" x="443" y="98">4</text>
+      <text class="ot" x="476" y="97">出力：1 → 2 → 4</text>
+
+      <!-- ④ pop(4) -->
+      <text class="st" x="12" y="131">④</text>
+      <rect x="26" y="114" width="130" height="24" fill="#fee2e2" stroke="#ef4444"/>
+      <text class="op" x="34" y="131">pop_back()</text>
+      <text class="ds" x="166" y="131">頂点4から戻る</text>
+      <rect x="330" y="113" width="42" height="26" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+      <rect x="376" y="113" width="42" height="26" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+      <rect x="422" y="113" width="42" height="26" fill="none" stroke="#9ca3af" stroke-dasharray="4 3"/>
+      <text class="n" x="351" y="132">1</text><text class="n" x="397" y="132">2</text>
+
+      <!-- ⑤ push(5) -->
+      <text class="st" x="12" y="165">⑤</text>
+      <rect x="26" y="148" width="130" height="24" fill="#dbeafe" stroke="#2563eb"/>
+      <text class="op" x="34" y="165">push_back(5)</text>
+      <text class="ds" x="166" y="165">頂点5に入る</text>
+      <rect x="330" y="147" width="42" height="26" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+      <rect x="376" y="147" width="42" height="26" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+      <rect x="422" y="147" width="42" height="26" fill="#fef9c3" stroke="#eab308" stroke-width="2"/>
+      <text class="n" x="351" y="166">1</text><text class="n" x="397" y="166">2</text><text class="n" x="443" y="166">5</text>
+      <text class="ot" x="476" y="165">出力：1 → 2 → 5</text>
+
+      <!-- ⑥ pop(5) -->
+      <text class="st" x="12" y="199">⑥</text>
+      <rect x="26" y="182" width="130" height="24" fill="#fee2e2" stroke="#ef4444"/>
+      <text class="op" x="34" y="199">pop_back()</text>
+      <text class="ds" x="166" y="199">頂点5から戻る</text>
+      <rect x="330" y="181" width="42" height="26" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+      <rect x="376" y="181" width="42" height="26" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+      <rect x="422" y="181" width="42" height="26" fill="none" stroke="#9ca3af" stroke-dasharray="4 3"/>
+      <text class="n" x="351" y="200">1</text><text class="n" x="397" y="200">2</text>
+
+      <!-- ⑦ pop(2) -->
+      <text class="st" x="12" y="233">⑦</text>
+      <rect x="26" y="216" width="130" height="24" fill="#fee2e2" stroke="#ef4444"/>
+      <text class="op" x="34" y="233">pop_back()</text>
+      <text class="ds" x="166" y="233">頂点2から戻る</text>
+      <rect x="330" y="215" width="42" height="26" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+      <rect x="376" y="215" width="42" height="26" fill="none" stroke="#9ca3af" stroke-dasharray="4 3"/>
+      <rect x="422" y="215" width="42" height="26" fill="none" stroke="#9ca3af" stroke-dasharray="4 3"/>
+      <text class="n" x="351" y="234">1</text>
+
+      <!-- ⑧ push(3) -->
+      <text class="st" x="12" y="267">⑧</text>
+      <rect x="26" y="250" width="130" height="24" fill="#dbeafe" stroke="#2563eb"/>
+      <text class="op" x="34" y="267">push_back(3)</text>
+      <text class="ds" x="166" y="267">頂点3に入る</text>
+      <rect x="330" y="249" width="42" height="26" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+      <rect x="376" y="249" width="42" height="26" fill="#fef9c3" stroke="#eab308" stroke-width="2"/>
+      <rect x="422" y="249" width="42" height="26" fill="none" stroke="#9ca3af" stroke-dasharray="4 3"/>
+      <text class="n" x="351" y="268">1</text><text class="n" x="397" y="268">3</text>
+      <text class="ot" x="476" y="267">出力：1 → 3</text>
+
+      <!-- ⑨ push(6) -->
+      <text class="st" x="12" y="301">⑨</text>
+      <rect x="26" y="284" width="130" height="24" fill="#dbeafe" stroke="#2563eb"/>
+      <text class="op" x="34" y="301">push_back(6)</text>
+      <text class="ds" x="166" y="301">頂点6に入る</text>
+      <rect x="330" y="283" width="42" height="26" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+      <rect x="376" y="283" width="42" height="26" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+      <rect x="422" y="283" width="42" height="26" fill="#fef9c3" stroke="#eab308" stroke-width="2"/>
+      <text class="n" x="351" y="302">1</text><text class="n" x="397" y="302">3</text><text class="n" x="443" y="302">6</text>
+      <text class="ot" x="476" y="301">出力：1 → 3 → 6</text>
+
+      <!-- ⑩ pop(6) -->
+      <text class="st" x="12" y="335">⑩</text>
+      <rect x="26" y="318" width="130" height="24" fill="#fee2e2" stroke="#ef4444"/>
+      <text class="op" x="34" y="335">pop_back()</text>
+      <text class="ds" x="166" y="335">頂点6から戻る</text>
+      <rect x="330" y="317" width="42" height="26" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+      <rect x="376" y="317" width="42" height="26" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+      <rect x="422" y="317" width="42" height="26" fill="none" stroke="#9ca3af" stroke-dasharray="4 3"/>
+      <text class="n" x="351" y="336">1</text><text class="n" x="397" y="336">3</text>
+
+      <!-- ⑪ pop(3) -->
+      <text class="st" x="12" y="369">⑪</text>
+      <rect x="26" y="352" width="130" height="24" fill="#fee2e2" stroke="#ef4444"/>
+      <text class="op" x="34" y="369">pop_back()</text>
+      <text class="ds" x="166" y="369">頂点3から戻る</text>
+      <rect x="330" y="351" width="42" height="26" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+      <rect x="376" y="351" width="42" height="26" fill="none" stroke="#9ca3af" stroke-dasharray="4 3"/>
+      <rect x="422" y="351" width="42" height="26" fill="none" stroke="#9ca3af" stroke-dasharray="4 3"/>
+      <text class="n" x="351" y="370">1</text>
+
+      <!-- ⑫ pop(1) -->
+      <text class="st" x="12" y="403">⑫</text>
+      <rect x="26" y="386" width="130" height="24" fill="#fee2e2" stroke="#ef4444"/>
+      <text class="op" x="34" y="403">pop_back()</text>
+      <text class="ds" x="166" y="403">頂点1から戻る</text>
+      <rect x="330" y="385" width="42" height="26" fill="none" stroke="#9ca3af" stroke-dasharray="4 3"/>
+      <rect x="376" y="385" width="42" height="26" fill="none" stroke="#9ca3af" stroke-dasharray="4 3"/>
+      <rect x="422" y="385" width="42" height="26" fill="none" stroke="#9ca3af" stroke-dasharray="4 3"/>
+      <text class="ds" x="476" y="403">← 最初の状態に戻った</text>
+    </svg>
+
+    <p class="small-label text-center mt-3">
+      ⑦で頂点2を取り除いているので、⑧で頂点3に入ったとき<code>path</code>は正しく<code>[1, 3]</code>になります。
+    </p>
+  </div>
+  <h3 class="font-bold text-blue-800 mb-2 border-b-2 border-gray-400 pb-1">
+    3-3. C++実装
+  </h3>
+
+  <p class="text-sm mb-2">
+    入力は、頂点数<code>N</code>と、<code>N - 1</code>本の辺です。
+    頂点に入るたびに、現在の<code>path</code>を表示します。
+  </p>
+
+  <div class="code-container mb-4">
+    <button
+      onclick="copyCode(this)"
+      class="absolute right-3 top-3 z-10 bg-blue-600 text-white text-xs px-2 py-1 win-panel"
+    >
+      コピー
+    </button>
+
+    <pre><code class="language-cpp">#include &lt;bits/stdc++.h&gt;
+using namespace std;
+
+int N;
+vector&lt;vector&lt;int&gt;&gt; G;
+vector&lt;int&gt; path;  // すべての呼び出しで共有する
+
+void dfs(int v, int parent) {
+    // 入る：自分を追加
+    path.push_back(v);
+
+    // 現在のpathを表示
+    for (int i = 0; i &lt; (int)path.size(); i++) {
+        if (i &gt; 0) cout &lt;&lt; " → ";
+        cout &lt;&lt; path[i];
+    }
+    cout &lt;&lt; endl;
+
+    // 子を探索
+    for (int next : G[v]) {
+        if (next == parent) continue;
+        dfs(next, v);
+    }
+
+    // 出る：自分を削除
+    path.pop_back();
+}
+
+int main() {
+    cin &gt;&gt; N;
+    G.resize(N + 1);
+
+    for (int i = 0; i &lt; N - 1; i++) {
+        int a, b;
+        cin &gt;&gt; a &gt;&gt; b;
+        G[a].push_back(b);
+        G[b].push_back(a);
+    }
+
+    dfs(1, 0);
+}</code></pre>
+  </div>
+
+ 
+
+
+
+</section>
+
+
+    </main>
+
+
+    <!-- Footer -->
+    <footer class="text-center py-10">
+      <div
+        class="inline-block bg-white border-2 border-gray-400 px-6 py-2 shadow-[2px_2px_0_#000] text-sm font-bold text-gray-700 win-panel"
+      >
+        IQ C++ Autumn Workshop 2026 - Rep. Takiguchi
+      </div>
+    </footer>
+
+
+    <script>
+      hljs.highlightAll();
+
+      function copyCode(btn) {
+        const container = btn.closest('.code-container');
+        const code = container.querySelector('code').innerText;
+
+        navigator.clipboard.writeText(code).then(() => {
+          const originalText = btn.innerText;
+          btn.innerText = '完了！';
+          btn.classList.remove('bg-blue-600');
+          btn.classList.add('bg-green-600');
+
+          setTimeout(() => {
+            btn.innerText = originalText;
+            btn.classList.remove('bg-green-600');
+            btn.classList.add('bg-blue-600');
+          }, 1500);
+        });
+      }
+    </script>
+
+  </body>
+</html>
